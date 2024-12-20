@@ -1,2 +1,42 @@
-example_setting:
-  default: true
+watermark_image:
+  type: upload
+  default: ""
+  description: "The image to use as watermark."
+
+watermark_position:
+  type: enum
+  default: "bottom-right"
+  choices:
+    - top-left
+    - top-center
+    - top-right
+    - center-left
+    - center
+    - center-right
+    - bottom-left
+    - bottom-center
+    - bottom-right
+  description: |
+    Choose where the watermark appears.
+
+watermark_margin:
+  type: integer
+  default: 10
+  description: "The margin of the watermark from the edge of the image."
+
+watermark_opacity:
+  type: integer
+  default: 100
+  description: "Adjust how visible the watermark is (0-100%)."
+
+watermark_scale:
+  type: float
+  default: 1
+  min: 0.1
+  max: 10
+  description: "Adjust the size of the watermark (0-10)."
+
+watermark_rotate:
+  type: integer
+  default: 0
+  description: "Rotate the watermark (0-360 degrees)."

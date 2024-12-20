@@ -1,5 +1,11 @@
 en:
   theme_metadata:
-    description: ''
+    description: ""
     settings:
       example_setting: A description of a setting.
+
+  preview:
+    title: Watermark Preview
+    buttons:
+      refresh: Change image
+      close: Close preview
