@@ -453,7 +453,12 @@ function messageFunction(event) {
       messageFunction(event);
     }, 50);
   } else {
-    applyWatermark(event);
+    try {
+      applyWatermark(event);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e);
+    }
   }
 }
 
