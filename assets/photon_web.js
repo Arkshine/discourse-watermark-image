@@ -316,12 +316,27 @@ async function applyWatermark(event) {
   const { seq, params } = event.data;
   const { upload: uploadParams, watermark: watermarkParams } = params;
 
-  let uploadImage = PhotonImage.new_from_byteslice(
-    new Uint8Array(uploadParams.buffer)
-  );
-  let watermarkImage = PhotonImage.new_from_byteslice(
-    new Uint8Array(watermarkParams.buffer)
-  );
+  let uploadImage;
+  let watermarkImage;
+
+  try {
+    uploadImage = PhotonImage.new_from_byteslice(
+      new Uint8Array(uploadParams.buffer)
+    );
+    watermarkImage = PhotonImage.new_from_byteslice(
+      new Uint8Array(watermarkParams.buffer)
+    );
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn("Unsupported format.", error);
+
+    postMessage({
+      incomingSeq: seq,
+      uploadImageData: null,
+    });
+
+    return;
+  }
 
   const uploadWidth = uploadImage.get_width();
   const uploadHeight = uploadImage.get_height();
@@ -453,12 +468,7 @@ function messageFunction(event) {
       messageFunction(event);
     }, 50);
   } else {
-    try {
-      applyWatermark(event);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error(e);
-    }
+    applyWatermark(event);
   }
 }
 

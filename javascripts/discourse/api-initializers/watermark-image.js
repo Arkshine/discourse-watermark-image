@@ -16,6 +16,11 @@ class WatermarkInit {
             watermarkFn: async (file) => {
               const watermark = new Watermark(file.data);
               const imageData = await watermark.sendToWorker();
+
+              if (!imageData) {
+                return Promise.resolve(file.data);
+              }
+
               const watermarkFile = await imageDataToFile(imageData, {
                 fileName: file.name,
                 fileType: file.type,
