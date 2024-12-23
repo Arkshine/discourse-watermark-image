@@ -3,13 +3,19 @@ en:
     description: ""
     settings:
       watermark_image: The image to use as watermark.
-      watermark_position: Choose where the watermark appears.
+      watermark_position: |
+        Choose where the watermark appears.
+        <br><br><br>
+        <h2>Appearance</h2>
       watermark_margin_x: Adjust the horizontal margin of the watermark from the edge of the image (in % of the target image).
       watermark_margin_y: Adjust the vertical margin of the watermark from the edge of the image (in % of the target image).
       watermark_opacity: Adjust how visible the watermark is (0-100%).
       watermark_scale: Adjust the size of the watermark (0-10).
       watermark_rotate: Rotate the watermark (0-360 degrees).
-      watermark_blend_mode: Choose how the watermark blends with the image.
+      watermark_blend_mode: |
+        Choose how the watermark blends with the image.
+        <br><br><br>
+        <h2>Template</h2>
       watermark_pattern: Choose how the watermark is repeated.
       watermark_pattern_max_count: Maximum number of times the watermark is repeated. (0 is infinite)
       watermark_pattern_spacing: Spacing between repeated watermarks (in % of the target image).
