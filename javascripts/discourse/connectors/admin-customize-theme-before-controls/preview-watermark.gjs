@@ -192,9 +192,13 @@ export default class PreviewWatermark extends Component {
     this.imageSourceURL = url;
     this.imageSourceFile = file;
     this.showPreview = !this.site.mobileView;
-    this.createActionsTop =
-      document.querySelector(".create-actions")?.getBoundingClientRect().top ||
-      0;
+
+    if (!this.createActionsTop) {
+      this.createActionsTop =
+        document
+          .querySelector('[data-setting="watermark_image"]')
+          ?.getBoundingClientRect().top || 0;
+    }
 
     return file;
   }
