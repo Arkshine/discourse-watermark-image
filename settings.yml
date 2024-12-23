@@ -1,7 +1,6 @@
 watermark_image:
   type: upload
   default: ""
-  description: "The image to use as watermark."
 
 watermark_position:
   type: enum
@@ -16,27 +15,67 @@ watermark_position:
     - bottom-left
     - bottom-center
     - bottom-right
-  description: |
-    Choose where the watermark appears.
 
-watermark_margin:
+watermark_margin_x:
   type: integer
-  default: 10
-  description: "The margin of the watermark from the edge of the image."
+  default: 1
+
+watermark_margin_y:
+  type: integer
+  default: 1
 
 watermark_opacity:
   type: integer
   default: 100
-  description: "Adjust how visible the watermark is (0-100%)."
 
 watermark_scale:
   type: float
   default: 1
   min: 0.1
   max: 10
-  description: "Adjust the size of the watermark (0-10)."
 
 watermark_rotate:
   type: integer
   default: 0
-  description: "Rotate the watermark (0-360 degrees)."
+
+watermark_blend_mode:
+  type: enum
+  default: "normal"
+  choices:
+    - normal
+    - overlay
+    - over
+    - atop
+    - xor
+    - plus
+    - multiply
+    - burn
+    - difference
+    - soft_light
+    - screen
+    - hard_light
+    - dodge
+    - exclusion
+    - lighten
+    - darken
+
+watermark_pattern:
+  type: enum
+  default: "single"
+  choices:
+    - single
+    - grid
+    - diagonal
+    - random
+
+watermark_pattern_max_count:
+  type: integer
+  default: 50
+
+watermark_pattern_spacing:
+  type: integer
+  default: 15
+
+watermark_pattern_allow_partial:
+  type: bool
+  default: true

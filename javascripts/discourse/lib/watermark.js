@@ -1,9 +1,5 @@
 import { getAbsoluteURL } from "discourse-common/lib/get-url";
-import {
-  canvasWithoutContext,
-  fileToDrawable,
-  imageURLToFile,
-} from "./media-watermark-utils";
+import { imageURLToFile } from "./media-watermark-utils";
 
 const webWorkerUrl = settings.theme_uploads_local.worker;
 const wasmUrl = settings.theme_uploads.wasm;
@@ -36,8 +32,8 @@ export default class Watermark {
     const params = await this.workerData();
 
     webWorker.postMessage({ seq, params }, [
-      params.upload.canvas,
-      params.watermark.canvas,
+      params.upload.buffer,
+      params.watermark.buffer,
     ]);
 
     return new Promise((resolve) => {
@@ -46,77 +42,19 @@ export default class Watermark {
   }
 
   async workerData() {
-    const calculateScale = (uploadWith, scale) => {
-      return { scale: scale * (uploadWith / 1000) };
-    };
-
-    const uploadDrawable = await fileToDrawable(this.file);
-    const watermarkDrawable = await fileToDrawable(
-      await imageURLToFile(this.abolsuteWatermarkURL)
-    );
-
-    const upLoadCanvas = canvasWithoutContext(uploadDrawable);
-    const watermarkCanvas = canvasWithoutContext(watermarkDrawable, {
-      ...this.transformSettings,
-      ...calculateScale(uploadDrawable.width, this.settings.scale),
-    });
-
-    const position = this.getCoordinates(
-      upLoadCanvas,
-      watermarkCanvas.width,
-      watermarkCanvas.height,
-      this.settings.position
-    );
+    const uploadBuffer = await this.file.arrayBuffer();
+    const watermarkFile = await imageURLToFile(this.abolsuteWatermarkURL);
+    const watermarkBuffer = await watermarkFile.arrayBuffer();
 
     return {
-      upload: { canvas: upLoadCanvas, drawable: uploadDrawable },
+      upload: {
+        buffer: uploadBuffer,
+      },
       watermark: {
-        canvas: watermarkCanvas,
-        drawable: watermarkDrawable,
-        ...this.transformSettings,
-        ...calculateScale(uploadDrawable.width, this.settings.scale),
-        position,
+        buffer: watermarkBuffer,
+        ...this.settings,
       },
     };
-  }
-
-  getCoordinates(canvas, watermarkWidth, watermarkHeight, position) {
-    const margin = this.settings.margin * canvas.width;
-
-    const positions = {
-      "top-left": { x: margin, y: margin },
-      "top-center": { x: (canvas.width - watermarkWidth) / 2, y: margin },
-      "top-right": {
-        x: canvas.width - watermarkWidth - margin,
-        y: margin,
-      },
-      "center-left": {
-        x: margin,
-        y: (canvas.height - watermarkHeight) / 2,
-      },
-      center: {
-        x: (canvas.width - watermarkWidth) / 2,
-        y: (canvas.height - watermarkHeight) / 2,
-      },
-      "center-right": {
-        x: canvas.width - watermarkWidth - margin,
-        y: (canvas.height - watermarkHeight) / 2,
-      },
-      "bottom-left": {
-        x: margin,
-        y: canvas.height - watermarkHeight - margin,
-      },
-      "bottom-center": {
-        x: (canvas.width - watermarkWidth) / 2,
-        y: canvas.height - watermarkHeight - margin,
-      },
-      "bottom-right": {
-        x: canvas.width - watermarkWidth - margin,
-        y: canvas.height - watermarkHeight - margin,
-      },
-    };
-
-    return positions[position];
   }
 
   get settings() {
@@ -131,15 +69,11 @@ export default class Watermark {
         .map(([key, value]) => [key.replace("watermark_", ""), value])
     );
 
-    newSettings.margin = newSettings.margin / 100;
+    newSettings.margin_x = newSettings.margin_x / 100;
+    newSettings.margin_y = newSettings.margin_y / 100;
     newSettings.opacity = newSettings.opacity / 100;
 
     return newSettings;
-  }
-
-  get transformSettings() {
-    const { scale, rotate, opacity } = this.settings;
-    return { scale, rotate, opacity };
   }
 
   get abolsuteWatermarkURL() {

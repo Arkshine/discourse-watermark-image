@@ -14,6 +14,12 @@
       width: 100%;
       height: auto;
     }
+
+    transition: top 0.2s ease-in-out;
+
+    &.dragging {
+      transition: none;
+    }
   }
 
   &__header {

@@ -41,6 +41,7 @@ export default class PreviewWatermark extends Component {
   resizing = false;
   dragging = false;
   dragOffset = null;
+  applyingWatermark = false;
 
   registerEvents = modifier(() => {
     document.querySelectorAll(SETTING_INPUT_SELECTOR).forEach((input) => {
@@ -76,6 +77,26 @@ export default class PreviewWatermark extends Component {
       this.appEvents.on(event, handler)
     );
 
+    const createActionsElement = document.querySelector(".create-actions");
+    const watermarkPreviewContainer =
+      document.querySelector(CONTAINER_SELECTOR);
+
+    const handleSroll = () => {
+      const scrollTop = window.scrollY || window.pageYOffset;
+      if (scrollTop >= this.createActionsTop) {
+        watermarkPreviewContainer.style.top =
+          Math.max(this.createActionsTop, scrollTop) + "px";
+      }
+    };
+
+    if (createActionsElement && watermarkPreviewContainer) {
+      watermarkPreviewContainer.style.top =
+        Math.max(this.createActionsTop, window.scrollY || window.pageYOffset) +
+        "px";
+
+      window.addEventListener("scroll", handleSroll);
+    }
+
     return () => {
       document.querySelectorAll(SETTING_INPUT_SELECTOR).forEach((input) => {
         input.removeEventListener("input", this.onSettingChange);
@@ -86,6 +107,8 @@ export default class PreviewWatermark extends Component {
       uploadEvents.forEach(({ event, handler }) =>
         this.appEvents.off(event, handler)
       );
+
+      window.removeEventListener("scroll", handleSroll);
     };
   });
 
@@ -124,6 +147,11 @@ export default class PreviewWatermark extends Component {
       return;
     }
 
+    if (this.applyingWatermark) {
+      this.onSettingChange();
+      return;
+    }
+
     const settingsValues = this.settingsValues;
     const emptyWatermark = !settingsValues.watermark_image;
 
@@ -137,12 +165,16 @@ export default class PreviewWatermark extends Component {
       }
     }
 
+    this.applyingWatermark = true;
+
     const watermark = new Watermark(file, settingsValues);
     const imageData = await watermark.sendToWorker();
     const watermarkFile = await imageDataToFile(imageData, {
       fileName: file.name,
       fileType: file.type,
     });
+
+    this.applyingWatermark = false;
 
     const reader = new FileReader();
     reader.readAsDataURL(watermarkFile);
@@ -160,6 +192,9 @@ export default class PreviewWatermark extends Component {
     this.imageSourceURL = url;
     this.imageSourceFile = file;
     this.showPreview = !this.site.mobileView;
+    this.createActionsTop =
+      document.querySelector(".create-actions")?.getBoundingClientRect().top ||
+      0;
 
     return file;
   }
@@ -228,6 +263,9 @@ export default class PreviewWatermark extends Component {
           case "string":
             inputValue = element.querySelector("input")?.value;
             break;
+          case "bool":
+            inputValue = element.querySelector("input")?.checked;
+            break;
           case "enum":
             inputValue = element.querySelector(".selected-name.choice").dataset
               .value;
@@ -267,6 +305,7 @@ export default class PreviewWatermark extends Component {
   @bind
   didStartDrag(event) {
     const target = event.target.closest(CONTAINER_SELECTOR);
+    target.classList.add("dragging");
 
     this.dragging = true;
     this.dragOffset = [
@@ -294,7 +333,10 @@ export default class PreviewWatermark extends Component {
   }
 
   @bind
-  didEndDrag() {
+  didEndDrag(event, element) {
+    const target = element.closest(CONTAINER_SELECTOR);
+    target.classList.remove("dragging");
+
     this.dragging = false;
     this.dragOffset = null;
   }
