@@ -81,7 +81,10 @@ function generateGridPattern(
   const maxWatermarks = settings.pattern_max_count || Infinity;
   const spacing = settings.pattern_spacing || 0;
   const allowPartial = settings.pattern_allow_partial || false;
+
   const spacingDistance = (spacing / 100) * Math.min(uploadWidth, uploadHeight);
+  const translateX = (settings.margin_x || 0) * uploadWidth;
+  const translateY = (settings.margin_y || 0) * uploadHeight;
 
   const cellWidth = watermarkWidth + spacingDistance;
   const cellHeight = watermarkHeight + spacingDistance;
@@ -130,12 +133,8 @@ function generateGridPattern(
 
   const centerX = uploadWidth / 2;
   const centerY = uploadHeight / 2;
-
   const offsetX = -(totalGridWidth / 2);
   const offsetY = -(totalGridHeight / 2);
-
-  const translateX = (settings.margin_x || 0) * uploadWidth;
-  const translateY = (settings.margin_y || 0) * uploadHeight;
 
   const positions = [];
   let count = 0;
@@ -176,7 +175,6 @@ function generateDiagonalPattern(
   const angle = settings.rotate || 45;
 
   const spacingDistance = (spacing / 100) * Math.min(uploadWidth, uploadHeight);
-
   const translateX = (settings.margin_x || 0) * uploadWidth;
   const translateY = (settings.margin_y || 0) * uploadHeight;
 
@@ -189,21 +187,17 @@ function generateDiagonalPattern(
 
   const perpX = -Math.sin(radians);
   const perpY = Math.cos(radians);
-
   const diagX = Math.cos(radians);
   const diagY = Math.sin(radians);
 
   const imageDiagonal = Math.sqrt(
     Math.pow(uploadWidth, 2) + Math.pow(uploadHeight, 2)
   );
-
   const numParallelLines = Math.ceil(imageDiagonal / perpStep);
-
   const centerX = uploadWidth / 2;
   const centerY = uploadHeight / 2;
 
   let count = 0;
-
   for (
     let i = -numParallelLines;
     i <= numParallelLines && count < maxWatermarks;
@@ -217,8 +211,12 @@ function generateDiagonalPattern(
 
     let x = lineStartX;
     let y = lineStartY;
+    let steps = 0;
+    const maxSteps = Math.ceil((imageDiagonal * 3) / diagonalStep);
 
-    while (count < maxWatermarks) {
+    while (count < maxWatermarks && steps < maxSteps) {
+      steps++;
+
       const finalX = x + translateX;
       const finalY = y + translateY;
 
@@ -233,9 +231,16 @@ function generateDiagonalPattern(
       x += diagX * diagonalStep;
       y += diagY * diagonalStep;
 
+      const distanceFromCenterX = Math.abs(x - translateX - centerX);
+      const distanceFromCenterY = Math.abs(y - translateY - centerY);
+      const safetyMargin = Math.max(watermarkWidth, watermarkHeight) * 2;
+
       if (
-        x - translateX > uploadWidth + watermarkWidth &&
-        y - translateY > uploadHeight + watermarkHeight
+        distanceFromCenterX > imageDiagonal + safetyMargin ||
+        distanceFromCenterY > imageDiagonal + safetyMargin ||
+        distanceFromCenterX * distanceFromCenterX +
+          distanceFromCenterY * distanceFromCenterY >
+          Math.pow(imageDiagonal + safetyMargin, 2)
       ) {
         break;
       }
@@ -246,10 +251,6 @@ function generateDiagonalPattern(
 
       positions.push({ x: finalX, y: finalY });
       count++;
-
-      if (count >= maxWatermarks) {
-        break;
-      }
     }
   }
 
@@ -400,13 +401,16 @@ async function applyWatermark(event) {
   }
 
   if (watermarkParams.rotate !== 0) {
-    const centerX = defaultPosition.x + watermarkWidth / 2;
-    const centerY = defaultPosition.y + watermarkHeight / 2;
-
     watermarkImage = rotate(watermarkImage, watermarkParams.rotate);
 
-    defaultPosition.x = centerX - watermarkImage.get_width() / 2;
-    defaultPosition.y = centerY - watermarkImage.get_height() / 2;
+    positions = positions.map((position) => {
+      const centerX = position.x + watermarkWidth / 2;
+      const centerY = position.y + watermarkHeight / 2;
+      return {
+        x: centerX - watermarkImage.get_width() / 2,
+        y: centerY - watermarkImage.get_height() / 2,
+      };
+    });
   }
 
   if (watermarkParams.opacity !== 1) {
