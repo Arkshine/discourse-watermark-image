@@ -14,6 +14,24 @@ en:
       watermark_rotate: Rotate the watermark (0-360 degrees).
       watermark_blend_mode: |
         Choose how the watermark blends with the image.
+        <details>
+          <summary>Blend list</summary>
+          <code>overlay</code> creates high contrast by combining multiply for dark colors and screen for light colors. It preserves highlights and shadows from both images while maintaining the patterns from both.<br>
+          <code>over</code> places the first image on top of the second, using alpha compositing. Areas where the top image is transparent will show the bottom image.<br>
+          <code>atop</code> is similar to over, but the result only appears where the bottom image is visible (maintains the alpha channel of the second image).<br>
+          <code>xor</code> shows either the top or bottom image, but not both - areas where both images overlap become transparent.<br>
+          <code>plus</code> adds the color values of both images together, resulting in brighter colors. Can create a glowing or additive light effect.<br>
+          <code>multiply</code> multiplies corresponding pixels from both images. Makes everything darker as colors are multiplied together. Good for creating shadows and darkening effects.<br>
+          <code>burn</code> darkens the base image based on the blend image. Creates a more intense darkening effect than multiply, often used for adding strong shadows or creating dramatic dark effects.<br>
+          <code>difference</code> subtracts the darker of the two colors from the lighter one. Creates psychedelic or negative-like effects, useful for finding differences between images.<br>
+          <code>soft_light</code> is similar to overlay but produces a softer, more subtle effect. Good for gentle shading and adding dimension.<br>
+          <code>screen</code> multiplies the inverse of the colors, resulting in a brighter image. Useful for creating bright, glowy effects.<br>
+          <code>hard_light</code> is similar to overlay but with more intense results. The effect depends on the blend color: lighter colors lighten, darker colors darken.<br>
+          <code>dodge</code> brightens the base image based on the blend image. Creates bright, blown-out effects. Good for adding highlights or creating ethereal looks.<br>
+          <code>exclusion</code> is similar to difference but with lower contrast. Creates a negative-like effect but with more muted colors.<br>
+          <code>lighten</code> keeps the lighter of the corresponding pixels from either image. Good for creating bright effects or removing dark elements.<br>
+          <code>darken</code> keeps the darker of the corresponding pixels from either image. Good for creating shadows or removing bright elements.
+        </details>
         <br><br><br>
         <h2>Template</h2>
       watermark_pattern: Choose how the watermark is repeated.
