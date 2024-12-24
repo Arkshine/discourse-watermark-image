@@ -169,6 +169,12 @@ export default class PreviewWatermark extends Component {
 
     const watermark = new Watermark(file, settingsValues);
     const imageData = await watermark.sendToWorker();
+
+    if (!imageData) {
+      this.applyingWatermark = false;
+      return;
+    }
+
     const watermarkFile = await imageDataToFile(imageData, {
       fileName: file.name,
       fileType: file.type,
