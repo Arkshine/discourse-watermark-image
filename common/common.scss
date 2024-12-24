@@ -1,57 +1,66 @@
-.show-current-style .btn.preview-watermark {
-  margin-bottom: 0.5em !important;
-}
+.admin-interface {
+  .show-current-style .btn.preview-watermark {
+    margin-bottom: 0.5em !important;
+  }
 
-.watermark-preview {
-  &__container {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    z-index: 1;
-
-    img {
-      position: relative;
-      width: 100%;
-      height: auto;
-    }
-
-    transition: top 0.2s ease-in-out;
-
-    &.dragging {
-      transition: none;
+  [data-setting="watermark_blend_mode"] {
+    details[open] > summary:first-of-type ~ *,
+    details.open > summary:first-of-type ~ * {
+      display: inline-block;
     }
   }
 
-  &__header {
-    border: 1px solid var(--primary-300);
-    background: var(--secondary);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-left: 0.6rem;
-    font-weight: bold;
-    user-select: none;
+  .watermark-preview {
+    &__container {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      z-index: 1;
 
-    &:hover,
-    &:focus {
-      cursor: move;
+      img {
+        position: relative;
+        width: 100%;
+        height: auto;
+      }
+
+      transition: top 0.2s ease-in-out;
+
+      &.dragging {
+        transition: none;
+      }
     }
-  }
 
-  &__actions {
-    display: flex;
-    gap: 0.3rem;
-  }
-
-  &__resizable {
-    resize: horizontal;
-    overflow: hidden;
-    display: inline-block;
-    max-width: 100%;
-
-    img {
+    &__header {
+      border: 1px solid var(--primary-300);
+      background: var(--secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-left: 0.6rem;
+      font-weight: bold;
       user-select: none;
-      pointer-events: none;
+
+      &:hover,
+      &:focus {
+        cursor: move;
+      }
+    }
+
+    &__actions {
+      display: flex;
+      gap: 0.3rem;
+    }
+
+    &__resizable {
+      resize: horizontal;
+      overflow: hidden;
+      display: inline-block;
+      max-width: 100%;
+
+      img {
+        user-select: none;
+        pointer-events: none;
+      }
     }
   }
 }
