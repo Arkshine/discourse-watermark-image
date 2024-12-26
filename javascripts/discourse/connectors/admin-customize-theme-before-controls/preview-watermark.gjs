@@ -143,7 +143,10 @@ export default class PreviewWatermark extends Component {
 
   @action
   async applyWatermark(element, options = {}) {
-    if (!settings.watermark_image) {
+    const settingsValues = this.settingsValues;
+    const emptyWatermark = !settingsValues.watermark_image;
+
+    if (emptyWatermark) {
       return;
     }
 
@@ -151,9 +154,6 @@ export default class PreviewWatermark extends Component {
       this.onSettingChange();
       return;
     }
-
-    const settingsValues = this.settingsValues;
-    const emptyWatermark = !settingsValues.watermark_image;
 
     let file = this.imageSourceFile;
 
