@@ -79,3 +79,13 @@ watermark_pattern_spacing:
 watermark_pattern_allow_partial:
   type: bool
   default: true
+
+watermark_categories:
+  type: list
+  list_type: category
+  default: ""
+
+watermark_groups:
+  type: list
+  list_type: group
+  default: "0"

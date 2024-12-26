@@ -37,7 +37,12 @@ en:
       watermark_pattern: Choose how the watermark is repeated.
       watermark_pattern_max_count: Maximum number of times the watermark is repeated. (0 is infinite)
       watermark_pattern_spacing: Spacing between repeated watermarks (in % of the target image).
-      watermark_pattern_allow_partial: Allow partial watermarks at the edges of the image.
+      watermark_pattern_allow_partial: |
+        Allow partial watermarks at the edges of the image.
+        <br><br><br>
+        <h2>Rules</h2>
+      watermark_categories: Choose which categories the watermark should be applied to.
+      watermark_groups: Choose which groups the watermark should be applied to.
 
   preview:
     title: Watermark Preview
