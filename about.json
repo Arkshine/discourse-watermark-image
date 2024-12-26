@@ -9,8 +9,9 @@
   "minimum_discourse_version": null,
   "maximum_discourse_version": null,
   "assets": {
-    "wasm": "assets/photon_web_bg.wasm",
-    "worker": "assets/photon_web.js"
+    "worker_watermark": "assets/watermark.js",
+    "worker_photon": "assets/photon_rs.js",
+    "worker_photon_wasm": "assets/photon_rs.wasm"
   },
   "modifiers": {}
 }

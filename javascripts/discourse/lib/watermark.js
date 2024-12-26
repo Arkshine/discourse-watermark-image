@@ -1,8 +1,9 @@
 import { getAbsoluteURL } from "discourse-common/lib/get-url";
 import { imageURLToFile } from "./media-watermark-utils";
 
-const webWorkerUrl = settings.theme_uploads_local.worker;
-const wasmUrl = settings.theme_uploads.wasm;
+const workerWatermarkUrl = settings.theme_uploads_local.worker_watermark;
+const workerPhotonUrl = settings.theme_uploads_local.worker_photon;
+const workerPhotonWasmUrl = settings.theme_uploads.worker_photon_wasm;
 
 let webWorker;
 let messageSeq = 0;
@@ -18,8 +19,12 @@ export default class Watermark {
     let seq = messageSeq++;
 
     if (!webWorker) {
-      webWorker = new Worker(webWorkerUrl);
-      webWorker.postMessage(["wasmUrl", wasmUrl]);
+      webWorker = new Worker(workerWatermarkUrl);
+      webWorker.postMessage({
+        action: "load",
+        photonUrl: workerPhotonUrl,
+        photonWasmUrl: workerPhotonWasmUrl,
+      });
       webWorker.onmessage = function (event) {
         const { incomingSeq, uploadImageData } = event.data;
 
@@ -31,7 +36,7 @@ export default class Watermark {
 
     const params = await this.workerData();
 
-    webWorker.postMessage({ seq, params }, [
+    webWorker.postMessage({ action: "apply", seq, params }, [
       params.upload.buffer,
       params.watermark.buffer,
     ]);
