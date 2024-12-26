@@ -18,11 +18,11 @@ watermark_position:
 
 watermark_margin_x:
   type: integer
-  default: 1
+  default: 0
 
 watermark_margin_y:
   type: integer
-  default: 1
+  default: 0
 
 watermark_opacity:
   type: integer
