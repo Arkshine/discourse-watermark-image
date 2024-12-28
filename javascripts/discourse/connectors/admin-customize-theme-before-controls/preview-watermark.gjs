@@ -42,6 +42,7 @@ export default class PreviewWatermark extends Component {
   dragging = false;
   dragOffset = null;
   applyingWatermark = false;
+  previousSettingsValues = {};
 
   registerEvents = modifier(() => {
     document.querySelectorAll(SETTING_INPUT_SELECTOR).forEach((input) => {
@@ -292,7 +293,9 @@ export default class PreviewWatermark extends Component {
             inputValue = parseInt(inputValue, 10);
             break;
           case "float":
-            inputValue = parseFloat(inputValue);
+            inputValue = !/^-?\d+\.$/.test(inputValue)
+              ? parseFloat(inputValue)
+              : NaN;
             break;
         }
 
@@ -300,7 +303,12 @@ export default class PreviewWatermark extends Component {
           (["integer", "float"].includes(inputType) && isNaN(inputValue)) ||
           (settingName === "watermark_scale" && inputValue === 0)
         ) {
-          return;
+          inputValue = this.previousSettingsValues[settingName];
+        } else {
+          this.previousSettingsValues = {
+            ...this.previousSettingsValues,
+            [settingName]: inputValue,
+          };
         }
 
         return {
