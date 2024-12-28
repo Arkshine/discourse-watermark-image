@@ -323,6 +323,59 @@ function generateRandomPattern(
   return positions;
 }
 
+async function createBitmapCompat(imageData) {
+  if (typeof createImageBitmap === "function") {
+    try {
+      return await createImageBitmap(imageData);
+    } catch (error) {
+      console.warn("Failed to create native bitmap:", error);
+    }
+  }
+
+  return Promise.resolve({
+    width: imageData.width,
+    height: imageData.height,
+    _imageData: imageData,
+    close: function () {
+      this._imageData = null;
+    },
+  });
+}
+
+async function createOffscreenCanvasCompat(width, height) {
+  if (typeof OffscreenCanvas === "function") {
+    try {
+      return new OffscreenCanvas(width, height);
+    } catch (error) {
+      console.warn("Failed to create native offscreen canvas:", error);
+    }
+  }
+
+  return {
+    width,
+    height,
+    getContext() {
+      return {
+        globalAlpha: 1,
+        _imageData: new ImageData(width, height),
+        drawImage(bitmap) {
+          const newData =
+            this.globalAlpha !== 1
+              ? new Uint8ClampedArray(bitmap._imageData.data).map((v, i) =>
+                  (i + 1) % 4 ? v : v * this.globalAlpha
+                )
+              : bitmap._imageData.data;
+
+          this._imageData = new ImageData(newData, bitmap.width, bitmap.height);
+        },
+        getImageData() {
+          return this._imageData;
+        },
+      };
+    },
+  };
+}
+
 async function applyWatermark(event) {
   const { seq, params } = event.data;
   const { upload: uploadParams, watermark: watermarkParams } = params;
@@ -423,8 +476,11 @@ async function applyWatermark(event) {
   }
 
   if (watermarkParams.opacity !== 1) {
-    const bitmap = await createImageBitmap(watermarkImage.get_image_data());
-    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const bitmap = await createBitmapCompat(watermarkImage.get_image_data());
+    const canvas = await createOffscreenCanvasCompat(
+      bitmap.width,
+      bitmap.height
+    );
     const context = canvas.getContext("2d");
 
     context.globalAlpha = watermarkParams.opacity;

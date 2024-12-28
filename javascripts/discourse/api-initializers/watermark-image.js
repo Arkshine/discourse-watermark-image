@@ -50,7 +50,7 @@ class WatermarkInit {
               const imageData = await watermark.sendToWorker();
 
               if (!imageData) {
-                return Promise.resolve(file.data);
+                return Promise.resolve();
               }
 
               const watermarkFile = await imageDataToFile(imageData, {
