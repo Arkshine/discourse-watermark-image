@@ -2,6 +2,38 @@ watermark_image:
   type: upload
   default: ""
 
+watermark_qrcode_enabled:
+  type: bool
+  default: false
+
+watermark_qrcode_text:
+  type: string
+  default: ""
+
+watermark_qrcode_color:
+  type: string
+  list_type: color
+  default: "var(--primary)"
+
+watermark_qrcode_background_color:
+  type: string
+  default: "var(--secondary)"
+
+watermark_qrcode_quiet_zone:
+  type: integer
+  default: 2
+  min: 0
+  max: 10
+
+watermark_qrcode_error_correction:
+  type: enum
+  default: "Medium"
+  choices:
+    - Low
+    - Medium
+    - Quarter
+    - High
+
 watermark_position:
   type: enum
   default: "bottom-right"
@@ -27,16 +59,20 @@ watermark_margin_y:
 watermark_opacity:
   type: integer
   default: 100
+  min: 1
+  max: 100
 
 watermark_scale:
   type: float
   default: 1
-  min: 0.1
+  min: 0.01
   max: 10
 
 watermark_rotate:
   type: integer
   default: 0
+  min: -360
+  max: 360
 
 watermark_blend_mode:
   type: enum
@@ -71,6 +107,7 @@ watermark_pattern:
 watermark_pattern_max_count:
   type: integer
   default: 50
+  min: 0
 
 watermark_pattern_spacing:
   type: integer

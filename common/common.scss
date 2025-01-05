@@ -3,15 +3,16 @@
     margin-bottom: 0.5em !important;
   }
 
-  [data-setting="watermark_blend_mode"] {
+  [data-setting="watermark_blend_mode"],
+  [data-setting="watermark_qrcode_min_version"] {
     details[open] > summary:first-of-type ~ *,
     details.open > summary:first-of-type ~ * {
       display: inline-block;
     }
-  }
 
-  .setting-value h2 {
-    color: var(--primary-medium);
+    .setting-value h2 {
+      color: var(--primary-medium);
+    }
   }
 
   .watermark-preview {
@@ -48,6 +49,12 @@
       &:focus {
         cursor: move;
       }
+
+      .spinner {
+        position: absolute;
+        right: calc(3 * (16px + (0.65em * 2) + 2 * 0.3rem));
+        background: var(--secondary);
+      }
     }
 
     &__actions {
@@ -60,6 +67,7 @@
       overflow: hidden;
       display: inline-block;
       max-width: 100%;
+      position: relative;
 
       img {
         user-select: none;

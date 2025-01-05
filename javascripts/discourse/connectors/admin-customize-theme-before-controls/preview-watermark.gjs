@@ -1,8 +1,10 @@
 import { tracked } from "@glimmer/tracking";
 import Component from "@ember/component";
 import { action } from "@ember/object";
+import { getOwner } from "@ember/owner";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
-import { debounce } from "@ember/runloop";
+import didUpdate from "@ember/render-modifiers/modifiers/did-update";
+import { debounce, later } from "@ember/runloop";
 import { service } from "@ember/service";
 import { htmlSafe } from "@ember/template";
 import { modifier } from "ember-modifier";
@@ -21,7 +23,7 @@ import Watermark from "../../lib/watermark";
 const PREVIEW_IMAGE_WIDTH = "300px";
 const PREVIEW_IMAGE_HEIGHT = "200px";
 const IMAGE_BANK_URL = "https://picsum.photos/1200/800";
-const DEBOUNCED_UPDATE_IMAGE = 100;
+const DEBOUNCED_UPDATE_IMAGE = 200;
 
 const SETTING_CONTAINER_SELECTOR = ".theme.settings > [data-setting]";
 const SETTING_INPUT_SELECTOR = `${SETTING_CONTAINER_SELECTOR} input:not([type="file"])`;
@@ -37,12 +39,13 @@ export default class PreviewWatermark extends Component {
 
   @tracked showPreview;
   @tracked imageSourceURL;
+  @tracked imageLoading;
 
+  applyingWatermark = false;
+  previousSettingsValues = {};
   resizing = false;
   dragging = false;
   dragOffset = null;
-  applyingWatermark = false;
-  previousSettingsValues = {};
 
   registerEvents = modifier(() => {
     document.querySelectorAll(SETTING_INPUT_SELECTOR).forEach((input) => {
@@ -143,18 +146,49 @@ export default class PreviewWatermark extends Component {
   }
 
   @action
+  setPreviewPosition() {
+    const installButtonRect = document
+      .querySelector(".themes-list .create-actions")
+      .getBoundingClientRect();
+    const watermarkImageContainerRect = document
+      .querySelector('[data-setting="watermark_image"]')
+      .getBoundingClientRect();
+
+    this.createActionsTop = Math.max(
+      installButtonRect.y + window.scrollY,
+      watermarkImageContainerRect.y + window.scrollY
+    );
+  }
+
+  @action
   async applyWatermark(element, options = {}) {
     const settingsValues = this.settingsValues;
-    const emptyWatermark = !settingsValues.watermark_image;
-
-    if (emptyWatermark) {
-      return;
-    }
+    const emptyWatermark =
+      !settingsValues.watermark_image &&
+      (!settingsValues.watermark_qrcode_enabled ||
+        settingsValues.watermark_qrcode_text.trim().length === 0);
 
     if (this.applyingWatermark) {
       this.onSettingChange();
       return;
     }
+
+    const uploadButton = element.parentElement.querySelector(
+      ".pick-files-button button"
+    );
+
+    later(
+      this,
+      () => {
+        if (this.applyingWatermark) {
+          this.imageLoading = true;
+          uploadButton?.setAttribute("disabled", true);
+        }
+      },
+      DEBOUNCED_UPDATE_IMAGE
+    );
+
+    this.applyingWatermark = true;
 
     let file = this.imageSourceFile;
 
@@ -162,17 +196,21 @@ export default class PreviewWatermark extends Component {
       file = await this.initImage();
 
       if (emptyWatermark) {
+        this.imageLoading = false;
+        this.applyingWatermark = false;
         return;
       }
     }
 
-    this.applyingWatermark = true;
-
-    const watermark = new Watermark(file, settingsValues);
-    const imageData = await watermark.sendToWorker();
+    const watermark = new Watermark(getOwner(this), file, {
+      overwriteOptions: settingsValues,
+    });
+    const imageData = await watermark.process();
 
     if (!imageData) {
       this.applyingWatermark = false;
+      this.imageLoading = false;
+      uploadButton?.removeAttribute("disabled");
       return;
     }
 
@@ -182,6 +220,8 @@ export default class PreviewWatermark extends Component {
     });
 
     this.applyingWatermark = false;
+    this.imageLoading = false;
+    uploadButton?.removeAttribute("disabled");
 
     const reader = new FileReader();
     reader.readAsDataURL(watermarkFile);
@@ -198,14 +238,9 @@ export default class PreviewWatermark extends Component {
 
     this.imageSourceURL = url;
     this.imageSourceFile = file;
-    this.showPreview = !this.site.mobileView;
 
-    if (!this.createActionsTop) {
-      this.createActionsTop =
-        document
-          .querySelector('[data-setting="watermark_image"]')
-          ?.getBoundingClientRect().top || 0;
-    }
+    this.setPreviewPosition();
+    this.showPreview = !this.site.mobileView;
 
     return file;
   }
@@ -299,10 +334,47 @@ export default class PreviewWatermark extends Component {
             break;
         }
 
-        if (
-          (["integer", "float"].includes(inputType) && isNaN(inputValue)) ||
-          (settingName === "watermark_scale" && inputValue === 0)
-        ) {
+        const isValueOOB = () => {
+          if (["integer", "float"].includes(inputType)) {
+            const minMaxMapping = {
+              watermark_qrcode_quiet_zone: {
+                min: 0,
+                max: 10,
+              },
+              watermark_opacity: {
+                min: 1,
+                max: 100,
+              },
+              watermark_scale: {
+                min: 0.01,
+                max: 10,
+              },
+              watermark_rotate: {
+                min: -360,
+                max: 360,
+              },
+              watermark_pattern_max_count: {
+                min: 0,
+              },
+            };
+
+            if (isNaN(inputValue)) {
+              return true;
+            }
+
+            if (minMaxMapping[settingName]) {
+              const { min, max } = minMaxMapping[settingName];
+              return (
+                (min !== undefined && inputValue < min) ||
+                (max !== undefined && inputValue > max)
+              );
+            }
+
+            return false;
+          }
+        };
+
+        if (isValueOOB()) {
           inputValue = this.previousSettingsValues[settingName];
         } else {
           this.previousSettingsValues = {
@@ -370,7 +442,11 @@ export default class PreviewWatermark extends Component {
       />
 
       {{#if this.showPreview}}
-        <div class="watermark-preview__container" {{this.registerEvents}}>
+        <div
+          class="watermark-preview__container"
+          {{this.registerEvents}}
+          {{didInsert this.setPreviewPosition}}
+        >
           <div
             class="watermark-preview__header"
             {{draggable
@@ -380,14 +456,19 @@ export default class PreviewWatermark extends Component {
             }}
           >
             <div>{{i18n (themePrefix "preview.title")}}</div>
+            {{#if this.imageLoading}}
+              <div class="spinner small"></div>
+            {{/if}}
             <div class="watermark-preview__actions">
               <PickFilesButton
                 @allowMultiple={{false}}
                 @showButton={{true}}
                 @onFilesPicked={{this.uploadImage}}
+                @disabled={{this.imageLoading}}
                 @icon="upload"
                 accept="image/*"
                 name="image-uploader"
+                {{didUpdate this.updateDisable}}
               />
               <DButton
                 @icon="arrows-rotate"
@@ -395,6 +476,7 @@ export default class PreviewWatermark extends Component {
                 @translatedTitle={{i18n
                   (themePrefix "preview.buttons.refresh")
                 }}
+                @disabled={{this.imageLoading}}
                 @action={{this.refreshImage}}
               />
               <DButton

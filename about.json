@@ -10,8 +10,12 @@
   "maximum_discourse_version": null,
   "assets": {
     "worker_watermark": "assets/watermark.js",
-    "worker_photon": "assets/photon_rs.js",
-    "worker_photon_wasm": "assets/photon_rs.wasm"
+    "worker_photon": "assets/photon/photon_rs_bg.js",
+    "worker_photon_wasm": "assets/photon/photon_rs_bg.wasm",
+
+    "worker_qrcode": "assets/qrcode.js",
+    "worker_qrcodegen": "assets/qrcodegen/qrcodegen_no_heap_bg.js",
+    "worker_qrcodegen_wasm": "assets/qrcodegen/qrcodegen_no_heap_bg.wasm"
   },
   "modifiers": {}
 }

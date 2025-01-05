@@ -7,9 +7,9 @@ async function handleMessage(event) {
   const action = event.data.action;
 
   if (action === "load") {
-    const { photonUrl, photonWasmUrl } = event.data;
-    importScripts(photonUrl);
-    promisePhoton = __wbg_init({ module_or_path: photonWasmUrl });
+    const { url, wasmUrl } = event.data;
+    importScripts(url);
+    promisePhoton = __wbg_init({ module_or_path: wasmUrl });
   } else if (action === "apply") {
     await promisePhoton;
     applyWatermark(event);
@@ -162,6 +162,17 @@ function generateGridPattern(
           y + watermarkHeight > uploadHeight)
       ) {
         continue;
+      }
+
+      if (allowPartial) {
+        const isCompletelyOutside =
+          x + watermarkWidth < 0 ||
+          y + watermarkHeight < 0 ||
+          x > uploadWidth ||
+          y > uploadHeight;
+        if (isCompletelyOutside) {
+          continue;
+        }
       }
 
       positions.push({ x, y });
@@ -407,17 +418,45 @@ async function applyWatermark(event) {
   let watermarkWidth = watermarkImage.get_width();
   let watermarkHeight = watermarkImage.get_height();
 
-  if (watermarkParams.scale !== 1) {
-    const baseline = watermarkParams.scale * (uploadWidth / 1000);
+  if (watermarkParams.scale !== 1 || watermarkParams.isQRCode) {
+    const aspectRatio = watermarkWidth / watermarkHeight;
 
-    watermarkWidth = Math.round(watermarkWidth * baseline);
-    watermarkHeight = Math.round(watermarkHeight * baseline);
+    if (watermarkParams.isQRCode) {
+      // For QR code, start with 15% of the smaller canvas dimension as base size
+      const baseSize = Math.min(uploadWidth, uploadHeight) * 0.15;
+      watermarkWidth = Math.round(baseSize * watermarkParams.scale);
+      watermarkHeight = watermarkWidth; // Keep QR code square
+    } else {
+      // For regular watermark, use a percentage of canvas size as maximum
+      const maxWidth = uploadWidth * 0.5; // 50% of canvas width as maximum
+      const maxHeight = uploadHeight * 0.5; // 50% of canvas height as maximum
+
+      // Calculate base dimensions (fitting within max dimensions)
+      let baseWidth, baseHeight;
+
+      if (watermarkWidth > watermarkHeight) {
+        baseWidth = Math.min(watermarkWidth, maxWidth);
+        baseHeight = baseWidth / aspectRatio;
+      } else {
+        baseHeight = Math.min(watermarkHeight, maxHeight);
+        baseWidth = baseHeight * aspectRatio;
+      }
+
+      // Apply scale more gradually using something like:
+      // scale 1 = 100%, 2 = 150%, 3 = 200%, etc.
+      const scaleFactor = 1 + (watermarkParams.scale - 1) * 0.5;
+
+      watermarkWidth = Math.round(baseWidth * scaleFactor);
+      watermarkHeight = Math.round(baseHeight * scaleFactor);
+    }
 
     watermarkImage = resize(
       watermarkImage,
       watermarkWidth,
       watermarkHeight,
-      SamplingFilter.CatmullRom
+      watermarkParams.isQRCode
+        ? SamplingFilter.Nearest
+        : SamplingFilter.Lanczos3
     );
   }
 
@@ -522,7 +561,6 @@ async function applyWatermark(event) {
 
   postMessage({
     incomingSeq: seq,
-    uploadImageData: result,
-    uploadDimensions: { width: uploadWidth, height: uploadHeight },
+    data: result,
   });
 }

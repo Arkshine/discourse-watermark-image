@@ -2,11 +2,32 @@ en:
   theme_metadata:
     description: ""
     settings:
-      watermark_image: The image to use as watermark.
-      watermark_position: |
-        Choose where the watermark appears.
+      watermark_image: |
+        The image to use as watermark.<br>
+        Supported formats: JPEG, PNG, WEBP, BMP, TIFF
+      watermark_qrcode_enabled: Enable QR code watermark.
+      watermark_qrcode_text: |
+        The text to encode in the QR code.
+        There are placeholders available:<br>
+        - <code>{homepage}</code> - The URL of the homepage<br>
+        - <code>{username}</code> - The username of the user<br>
+        - <code>{topic_url}</code> - The URL of the topic<br>
+      watermark_qrcode_color: The color of the QR code. Hexadecimal color codes and CSS variables are supported.
+      watermark_qrcode_background_color: The background color of the QR code. Hexadecimal color codes and CSS variables are supported.
+      watermark_qrcode_quiet_zone: Width of white space border around the QR code, measured in modules (squares, 0-10)
+      watermark_qrcode_error_correction: |
+        The level of error correction to use in the QR code.<br>
+        <details><summary>Details</summary>
+          Error correction capability level:<br>
+          - Low: ~7% recovery<br>
+          - Medium: ~15% recovery<br>
+          - Quartile: ~25% recovery<br>
+          - High: ~30% recovery<br><br>
+        More information about error correction levels can be found <a href="https://www.qrcode.com/en/about/error_correction.html" target="_blank">here.</a></details>
         <br><br><br>
         <h2>Appearance</h2>
+
+      watermark_position: Choose where the watermark appears.
       watermark_margin_x: Adjust the horizontal margin of the watermark from the edge of the image (in % of the target image).
       watermark_margin_y: Adjust the vertical margin of the watermark from the edge of the image (in % of the target image).
       watermark_opacity: Adjust how visible the watermark is (0-100%).
