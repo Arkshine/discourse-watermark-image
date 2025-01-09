@@ -12,6 +12,15 @@ const workerQRCodeUrl = settings.theme_uploads_local.worker_qrcode;
 const workerQRCodeGenUrl = settings.theme_uploads_local.worker_qrcodegen;
 const workerQRCodeGenWasmUrl = settings.theme_uploads.worker_qrcodegen_wasm;
 
+const WATERMARK_ALLOWED_EXTS = new Set([
+  "png",
+  "jpeg",
+  "bmp",
+  "ico",
+  "tiff",
+  "webp",
+]);
+
 class WorkerManager {
   @service siteSettings;
 
@@ -84,6 +93,16 @@ class WorkerManager {
 const workerManager = new WorkerManager();
 
 export default class Watermark {
+  static getExtensionsRegex(allowedExts) {
+    const commonExtensions = allowedExts.filter((ext) =>
+      WATERMARK_ALLOWED_EXTS.has(ext)
+    );
+    return {
+      pattern: new RegExp(`image/(${commonExtensions.join("|")})`),
+      extensions: commonExtensions,
+    };
+  }
+
   @service currentUser;
   @service siteSettings;
 

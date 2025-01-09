@@ -1,7 +1,10 @@
 import { setOwner } from "@ember/owner";
 import { service } from "@ember/service";
 import { withPluginApi } from "discourse/lib/plugin-api";
+import { bind } from "discourse-common/utils/decorators";
+import { i18n } from "discourse-i18n";
 import { imageDataToFile } from "../lib/media-watermark-utils";
+import { imagesExtensions } from "../lib/uploads";
 import UppyMediaWatermark from "../lib/uppy-media-watermark-plugin";
 import Watermark from "../lib/watermark";
 
@@ -18,7 +21,7 @@ class WatermarkInit {
         return {
           watermarkFn: async (file) => {
             if (owner.isDestroyed || owner.isDestroying) {
-              return Promise.resolve();
+              return null;
             }
 
             if (
@@ -26,7 +29,7 @@ class WatermarkInit {
               !settings.watermark_qrcode_enabled ||
               settings.watermark_qrcode_text.trim().length === 0
             ) {
-              return Promise.resolve();
+              return null;
             }
 
             if (
@@ -36,7 +39,7 @@ class WatermarkInit {
                 .map((c) => Number(c))
                 .includes(composerModel.categoryId)
             ) {
-              return Promise.resolve();
+              return null;
             }
 
             if (settings.watermark_groups) {
@@ -50,7 +53,7 @@ class WatermarkInit {
                   .map((group) => group.id)
                   .some((group) => requiredGroups.includes(group))
               ) {
-                return Promise.resolve();
+                return null;
               }
             }
 
@@ -65,7 +68,7 @@ class WatermarkInit {
             const imageData = await watermark.process();
 
             if (!imageData) {
-              return Promise.resolve();
+              return null;
             }
 
             const watermarkFile = await imageDataToFile(imageData, {
@@ -79,6 +82,52 @@ class WatermarkInit {
         };
       }
     );
+
+    if (!settings.watermark_allow_non_supported_uploads) {
+      api.modifyClass(
+        "component:composer-editor",
+        (Superclass) =>
+          class extends Superclass {
+            @service dialog;
+            @service currentUser;
+            @service siteSettings;
+
+            @bind
+            setupEditor(textManipulation) {
+              const result = super.setupEditor(textManipulation);
+
+              const { uppyInstance } = this.uppyComposerUpload.uppyWrapper;
+              const originalHandler = uppyInstance.opts.onBeforeFileAdded;
+              uppyInstance.opts.onBeforeFileAdded = (currentFile) => {
+                if (originalHandler) {
+                  const {
+                    pattern: regexPattern,
+                    extensions: commonExtensions,
+                  } = Watermark.getExtensionsRegex(
+                    imagesExtensions(this.currentUser?.staff, this.siteSettings)
+                  );
+
+                  if (!regexPattern.test(currentFile.type)) {
+                    this.dialog.alert(
+                      i18n(
+                        themePrefix("composer.errors.upload_not_authorized"),
+                        {
+                          authorized_extensions: commonExtensions.join(", "),
+                        }
+                      )
+                    );
+                    return false;
+                  }
+                }
+
+                return originalHandler;
+              };
+
+              return result;
+            }
+          }
+      );
+    }
   }
 }
 
@@ -86,7 +135,7 @@ export default {
   name: "discourse-watermark",
 
   initialize(owner) {
-    withPluginApi("1.8.0", (api) => {
+    withPluginApi("1.38.0", (api) => {
       this.instance = new WatermarkInit(owner, api);
     });
   },

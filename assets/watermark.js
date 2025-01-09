@@ -418,20 +418,40 @@ async function applyWatermark(event) {
   let watermarkWidth = watermarkImage.get_width();
   let watermarkHeight = watermarkImage.get_height();
 
+  if (
+    watermarkParams.skip_small_images &&
+    watermarkParams.min_image_dimensions
+  ) {
+    const [minWidth, minHeight] = watermarkParams.min_image_dimensions
+      .split("x")
+      .map(Number);
+
+    if (uploadWidth < minWidth || (minHeight && uploadHeight < minHeight)) {
+      postMessage({
+        incomingSeq: seq,
+        data: null,
+        reason: "dimensions_too_small",
+      });
+
+      return;
+    }
+  }
+
   if (watermarkParams.scale !== 1 || watermarkParams.isQRCode) {
     const aspectRatio = watermarkWidth / watermarkHeight;
 
     if (watermarkParams.isQRCode) {
-      // For QR code, start with 15% of the smaller canvas dimension as base size
+      // Start with a size that is 15% of the smallest dimension
       const baseSize = Math.min(uploadWidth, uploadHeight) * 0.15;
-      watermarkWidth = Math.round(baseSize * watermarkParams.scale);
-      watermarkHeight = watermarkWidth; // Keep QR code square
+      const finalSize = Math.max(watermarkWidth, baseSize);
+
+      watermarkWidth = Math.round(finalSize * watermarkParams.scale);
+      watermarkHeight = watermarkWidth;
     } else {
       // For regular watermark, use a percentage of canvas size as maximum
       const maxWidth = uploadWidth * 0.5; // 50% of canvas width as maximum
       const maxHeight = uploadHeight * 0.5; // 50% of canvas height as maximum
 
-      // Calculate base dimensions (fitting within max dimensions)
       let baseWidth, baseHeight;
 
       if (watermarkWidth > watermarkHeight) {

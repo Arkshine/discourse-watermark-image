@@ -4,7 +4,7 @@ en:
     settings:
       watermark_image: |
         The image to use as watermark.<br>
-        Supported formats: JPEG, PNG, WEBP, BMP, TIFF
+        Supported formats: PNG, JPEG, BMP, ICO, TIFF, WEBP.
       watermark_qrcode_enabled: Enable QR code watermark.
       watermark_qrcode_text: |
         The text to encode in the QR code.
@@ -26,7 +26,6 @@ en:
         More information about error correction levels can be found <a href="https://www.qrcode.com/en/about/error_correction.html" target="_blank">here.</a></details>
         <br><br><br>
         <h2>Appearance</h2>
-
       watermark_position: Choose where the watermark appears.
       watermark_margin_x: Adjust the horizontal margin of the watermark from the edge of the image (in % of the target image).
       watermark_margin_y: Adjust the vertical margin of the watermark from the edge of the image (in % of the target image).
@@ -56,17 +55,22 @@ en:
         <br><br><br>
         <h2>Template</h2>
       watermark_pattern: Choose how the watermark is repeated.
+      watermark_pattern_allow_partial: Allow partial watermarks at the edges of the image.
       watermark_pattern_max_count: Maximum number of times the watermark is repeated. (0 is infinite)
-      watermark_pattern_spacing: Spacing between repeated watermarks (in % of the target image).
-      watermark_pattern_allow_partial: |
-        Allow partial watermarks at the edges of the image.
+      watermark_pattern_spacing: |
+        Spacing between repeated watermarks (in % of the target image).
         <br><br><br>
         <h2>Rules</h2>
       watermark_categories: Choose which categories the watermark should be applied to.
       watermark_groups: Choose which groups the watermark should be applied to.
-
+      watermark_skip_small_images: Skip watermarking if image is below minimum dimensions.
+      watermark_min_image_dimensions: Minimum dimensions required to apply watermark (width x height).
+      watermark_allow_non_supported_uploads: Allow image uploads to continue even when the format is not supported by the watermark library.
   preview:
     title: Watermark Preview
     buttons:
       refresh: Change image
       close: Close preview
+  composer:
+    errors:
+      upload_not_authorized: "Sorry, the file you are trying to upload doesn't support watermarking (authorized extensions: %{authorized_extensions})."

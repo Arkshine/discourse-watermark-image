@@ -1,3 +1,12 @@
+// QR Code Generator version 1.8.1 - https://github.com/Arkshine/qr-code-generator-wasm
+//
+// This is a fork of https://github.com/nayuki/QR-Code-generator by Project Nayuki.
+// This project includes only the Rust code from the original repository, with modifications
+// to expose a simple JavaScript interface for Web usage through WebAssembly.
+//
+// Built from Github code course with `wasm-pack build --release --target web`.
+// The code below is the output of the build, minor the removal of export statements and lint fixes.
+
 /* eslint-disable no-console */
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */

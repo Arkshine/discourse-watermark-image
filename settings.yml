@@ -104,6 +104,10 @@ watermark_pattern:
     - diagonal
     - random
 
+watermark_pattern_allow_partial:
+  type: bool
+  default: true
+
 watermark_pattern_max_count:
   type: integer
   default: 50
@@ -112,10 +116,6 @@ watermark_pattern_max_count:
 watermark_pattern_spacing:
   type: integer
   default: 15
-
-watermark_pattern_allow_partial:
-  type: bool
-  default: true
 
 watermark_categories:
   type: list
@@ -126,3 +126,17 @@ watermark_groups:
   type: list
   list_type: group
   default: "0"
+
+watermark_skip_small_images:
+  type: bool
+  default: false
+  description: "Skip watermarking if image is below minimum dimensions"
+
+watermark_min_image_dimensions:
+  type: string
+  default: "200x200"
+  description: "Minimum dimensions required to apply watermark (width x height)"
+
+watermark_allow_non_supported_uploads:
+  type: bool
+  default: false
