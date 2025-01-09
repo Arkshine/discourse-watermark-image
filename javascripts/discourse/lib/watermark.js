@@ -100,6 +100,10 @@ export default class Watermark {
 
     if (this.settings.qrcode_enabled && this.settings.qrcode_text) {
       qrCodeData = await this.generateQRCode();
+
+      if (qrCodeData?.error) {
+        return null;
+      }
     }
 
     return this.applyWatermark(qrCodeData);

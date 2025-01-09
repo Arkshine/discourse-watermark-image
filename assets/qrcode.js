@@ -56,5 +56,10 @@ async function generateQrCode(event) {
     );
   } catch (error) {
     console.warn(error);
+
+    postMessage({
+      incomingSeq: seq,
+      error: error.toString(),
+    });
   }
 }

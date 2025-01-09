@@ -190,54 +190,12 @@ const WasmQrCodeFinalization =
   }
 
   /**
-   * @param {number} x
-   * @param {number} y
-   * @returns {boolean}
-   */
-  get_module(x, y) {
-    const ret = wasm.wasmqrcode_get_module(this.__wbg_ptr, x, y);
-    return ret !== 0;
-  }
-
-  /**
-   * @param {number} canvas_size
-   * @param {number} start_size
-   * @returns {number}
-   */
-  get_recommended_size(canvas_size, start_size) {
-    const ret = wasm.wasmqrcode_get_recommended_size(
-      this.__wbg_ptr,
-      canvas_size,
-      start_size
-    );
-    return ret >>> 0;
-  }
-
-  /**
-   * @param {number} target_size
-   * @returns {string}
-   */
-  to_svg(target_size) {
-    let deferred1_0;
-    let deferred1_1;
-    try {
-      const ret = wasm.wasmqrcode_to_svg(this.__wbg_ptr, target_size);
-      deferred1_0 = ret[0];
-      deferred1_1 = ret[1];
-      return getStringFromWasm0(ret[0], ret[1]);
-    } finally {
-      wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
-    }
-  }
-
-  /**
    * @param {string} fg_color
    * @param {string} bg_color
    * @param {number} quiet_zone
-   * @param {number} radius
    * @returns {Uint8Array}
    */
-  to_png(fg_color, bg_color, quiet_zone, radius) {
+  to_png(fg_color, bg_color, quiet_zone) {
     const ptr0 = passStringToWasm0(
       fg_color,
       wasm.__wbindgen_malloc,
@@ -256,8 +214,7 @@ const WasmQrCodeFinalization =
       len0,
       ptr1,
       len1,
-      quiet_zone,
-      radius
+      quiet_zone
     );
     if (ret[2]) {
       throw takeFromExternrefTable0(ret[1]);
@@ -266,11 +223,13 @@ const WasmQrCodeFinalization =
   }
 
   /**
-   * @returns {Uint8Array}
+   * @param {number} x
+   * @param {number} y
+   * @returns {boolean}
    */
-  to_rgba() {
-    const ret = wasm.wasmqrcode_to_rgba(this.__wbg_ptr);
-    return ret;
+  get_module(x, y) {
+    const ret = wasm.wasmqrcode_get_module(this.__wbg_ptr, x, y);
+    return ret !== 0;
   }
 
   /**
