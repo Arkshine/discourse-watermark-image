@@ -12,7 +12,7 @@ const workerQRCodeUrl = settings.theme_uploads_local.worker_qrcode;
 const workerQRCodeGenUrl = settings.theme_uploads_local.worker_qrcodegen;
 const workerQRCodeGenWasmUrl = settings.theme_uploads.worker_qrcodegen_wasm;
 
-const WATERMARK_ALLOWED_EXTS = new Set([
+export const WATERMARK_ALLOWED_EXTS = new Set([
   "png",
   "jpeg",
   "bmp",
@@ -20,6 +20,10 @@ const WATERMARK_ALLOWED_EXTS = new Set([
   "tiff",
   "webp",
 ]);
+
+export const WATERMARK_ALLOWED_EXTS_STRING = Array.from(WATERMARK_ALLOWED_EXTS)
+  .map((ext) => `.${ext}`)
+  .join(",");
 
 class WorkerManager {
   @service siteSettings;

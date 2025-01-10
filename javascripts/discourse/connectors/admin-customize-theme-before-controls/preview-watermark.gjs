@@ -3,7 +3,6 @@ import Component from "@ember/component";
 import { action } from "@ember/object";
 import { getOwner } from "@ember/owner";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
-import didUpdate from "@ember/render-modifiers/modifiers/did-update";
 import { debounce, later } from "@ember/runloop";
 import { service } from "@ember/service";
 import { htmlSafe } from "@ember/template";
@@ -18,7 +17,7 @@ import {
   imageDataToFile,
   imageURLToFile,
 } from "../../lib/media-watermark-utils";
-import Watermark from "../../lib/watermark";
+import Watermark, { WATERMARK_ALLOWED_EXTS_STRING } from "../../lib/watermark";
 
 const PREVIEW_IMAGE_WIDTH = "300px";
 const PREVIEW_IMAGE_HEIGHT = "200px";
@@ -465,10 +464,11 @@ export default class PreviewWatermark extends Component {
                 @showButton={{true}}
                 @onFilesPicked={{this.uploadImage}}
                 @disabled={{this.imageLoading}}
+                @acceptedFormatsOverride={{WATERMARK_ALLOWED_EXTS_STRING}}
+                @acceptedFileTypesString={{WATERMARK_ALLOWED_EXTS_STRING}}
                 @icon="upload"
                 accept="image/*"
                 name="image-uploader"
-                {{didUpdate this.updateDisable}}
               />
               <DButton
                 @icon="arrows-rotate"
