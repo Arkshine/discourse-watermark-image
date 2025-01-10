@@ -29,6 +29,7 @@ const SETTING_INPUT_SELECTOR = `${SETTING_CONTAINER_SELECTOR} input:not([type="f
 
 const CONTAINER_SELECTOR = ".watermark-preview__container";
 const IMAGE_SELECTOR = ".watermark-preview__resizable";
+const ACTIONS_SELECTOR = ".watermark-preview__actions";
 
 const UPLOAD_PREFIX_ID = "site-setting-image-uploader";
 
@@ -235,6 +236,18 @@ export default class PreviewWatermark extends Component {
       returnOriginalUrl: true,
     });
 
+    if (this.imageSourceURL) {
+      URL.revokeObjectURL(this.imageSourceURL);
+    }
+
+    const uploadinput = document.querySelector(
+      `${ACTIONS_SELECTOR} .pick-files-button input`
+    );
+
+    if (uploadinput) {
+      uploadinput.value = "";
+    }
+
     this.imageSourceURL = url;
     this.imageSourceFile = file;
 
@@ -247,6 +260,10 @@ export default class PreviewWatermark extends Component {
   @action
   uploadImage(files) {
     const file = files[0];
+
+    if (this.imageSourceURL) {
+      URL.revokeObjectURL(this.imageSourceURL);
+    }
 
     this.imageSourceURL = URL.createObjectURL(file);
     this.imageSourceFile = file;
