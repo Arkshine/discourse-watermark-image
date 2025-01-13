@@ -361,9 +361,16 @@ export default class PreviewWatermark extends Component {
                 min: 1,
                 max: 100,
               },
-              watermark_scale: {
+              watermark_relative_width: {
+                min: 1,
+                max: 100,
+              },
+              watermark_absolute_scale: {
                 min: 0.01,
-                max: 10,
+              },
+              watermark_max_size: {
+                min: 1,
+                max: 100,
               },
               watermark_rotate: {
                 min: -360,

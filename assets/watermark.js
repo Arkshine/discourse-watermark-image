@@ -387,6 +387,34 @@ async function createOffscreenCanvasCompat(width, height) {
   };
 }
 
+function calculateMinQRSize(qrText, errorCorrection = "Medium", quietZone = 2) {
+  // Base modules for each side (version 1 starts at 21x21)
+  const baseModules = 21;
+
+  const errorCorrectionMultiplier =
+    {
+      Low: 1.07,
+      Medium: 1.15,
+      Quarter: 1.25,
+      High: 1.3,
+    }[errorCorrection] || 1.15;
+
+  const length = String(qrText).length * errorCorrectionMultiplier;
+
+  let estimatedVersion = Math.ceil(length / 10);
+  if (estimatedVersion < 1) {
+    estimatedVersion = 1;
+  }
+  if (estimatedVersion > 40) {
+    estimatedVersion = 40;
+  }
+
+  const moduleCount = baseModules + (estimatedVersion - 1) * 4 + quietZone * 2;
+  const minPixelsPerModule = 4;
+
+  return Math.ceil(moduleCount * minPixelsPerModule);
+}
+
 async function applyWatermark(event) {
   const { seq, params } = event.data;
   const { upload: uploadParams, watermark: watermarkParams } = params;
@@ -437,21 +465,42 @@ async function applyWatermark(event) {
     }
   }
 
-  if (watermarkParams.scale !== 1 || watermarkParams.isQRCode) {
+  if (
+    watermarkParams.size_mode === "relative" ||
+    watermarkParams.size_mode === "absolute"
+  ) {
     const aspectRatio = watermarkWidth / watermarkHeight;
+    const previousWatermarkWidth = watermarkWidth;
+    const previousWatermarkHeight = watermarkHeight;
 
-    if (watermarkParams.isQRCode) {
-      // Start with a size that is 15% of the smallest dimension
-      const baseSize = Math.min(uploadWidth, uploadHeight) * 0.15;
-      const finalSize = Math.max(watermarkWidth, baseSize);
+    const maxWidth = uploadWidth * (watermarkParams.max_size / 100);
+    const maxHeight = uploadHeight * (watermarkParams.max_size / 100);
 
-      watermarkWidth = Math.round(finalSize * watermarkParams.scale);
-      watermarkHeight = watermarkWidth;
+    if (watermarkParams.size_mode === "relative") {
+      const targetWidth = uploadWidth * (watermarkParams.relative_width / 100);
+      watermarkWidth = Math.min(targetWidth, maxWidth);
+
+      if (watermarkParams.isQRCode) {
+        const minSize = calculateMinQRSize(
+          watermarkParams.qrcode_text || "",
+          watermarkParams.qrcode_error_correction,
+          watermarkParams.qrcode_quiet_zone
+        );
+
+        watermarkWidth = Math.max(watermarkWidth, minSize);
+        watermarkHeight = watermarkWidth;
+
+        if (watermarkWidth > maxWidth) {
+          console.warn(
+            "QR code may not be readable at this size - content may be too large"
+          );
+          watermarkWidth = maxWidth;
+          watermarkHeight = maxWidth;
+        }
+      } else {
+        watermarkHeight = watermarkWidth / aspectRatio;
+      }
     } else {
-      // For regular watermark, use a percentage of canvas size as maximum
-      const maxWidth = uploadWidth * 0.5; // 50% of canvas width as maximum
-      const maxHeight = uploadHeight * 0.5; // 50% of canvas height as maximum
-
       let baseWidth, baseHeight;
 
       if (watermarkWidth > watermarkHeight) {
@@ -462,22 +511,32 @@ async function applyWatermark(event) {
         baseWidth = baseHeight * aspectRatio;
       }
 
-      // Apply scale more gradually using something like:
-      // scale 1 = 100%, 2 = 150%, 3 = 200%, etc.
-      const scaleFactor = 1 + (watermarkParams.scale - 1) * 0.5;
+      watermarkWidth = Math.round(baseWidth * watermarkParams.absolute_scale);
+      watermarkHeight = Math.round(baseHeight * watermarkParams.absolute_scale);
 
-      watermarkWidth = Math.round(baseWidth * scaleFactor);
-      watermarkHeight = Math.round(baseHeight * scaleFactor);
+      if (watermarkWidth > maxWidth) {
+        watermarkWidth = maxWidth;
+        watermarkHeight = watermarkWidth / aspectRatio;
+      }
+      if (watermarkHeight > maxHeight) {
+        watermarkHeight = maxHeight;
+        watermarkWidth = watermarkHeight * aspectRatio;
+      }
     }
 
-    watermarkImage = resize(
-      watermarkImage,
-      watermarkWidth,
-      watermarkHeight,
-      watermarkParams.isQRCode
-        ? SamplingFilter.Nearest
-        : SamplingFilter.Lanczos3
-    );
+    if (
+      watermarkWidth !== previousWatermarkWidth ||
+      watermarkHeight !== previousWatermarkHeight
+    ) {
+      watermarkImage = resize(
+        watermarkImage,
+        Math.round(watermarkWidth),
+        Math.round(watermarkHeight),
+        watermarkParams.isQRCode
+          ? SamplingFilter.Nearest
+          : SamplingFilter.Lanczos3
+      );
+    }
   }
 
   let defaultPosition = getCoordinates(

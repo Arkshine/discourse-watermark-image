@@ -62,11 +62,29 @@ watermark_opacity:
   min: 1
   max: 100
 
-watermark_scale:
+watermark_size_mode:
+  type: enum
+  default: "relative"
+  choices:
+    - relative
+    - absolute
+
+watermark_relative_width:
+  type: integer
+  default: 10
+  min: 1
+  max: 100
+
+watermark_absolute_scale:
   type: float
   default: 1
   min: 0.01
-  max: 10
+
+watermark_max_size:
+  type: integer
+  default: 100
+  min: 1
+  max: 100
 
 watermark_rotate:
   type: integer
