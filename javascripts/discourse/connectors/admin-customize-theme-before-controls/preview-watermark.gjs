@@ -165,8 +165,7 @@ export default class PreviewWatermark extends Component {
     const settingsValues = this.settingsValues;
     const emptyWatermark =
       !settingsValues.watermark_image &&
-      (!settingsValues.watermark_qrcode_enabled ||
-        settingsValues.watermark_qrcode_text.trim().length === 0);
+      !settingsValues.watermark_qrcode_enabled;
 
     if (this.applyingWatermark) {
       this.onSettingChange();

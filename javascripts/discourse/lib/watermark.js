@@ -1,6 +1,5 @@
 import { setOwner } from "@ember/owner";
 import { service } from "@ember/service";
-import { defaultHomepage } from "discourse/lib/utilities";
 import { getAbsoluteURL } from "discourse-common/lib/get-url";
 import { imageURLToFile } from "./media-watermark-utils";
 
@@ -121,7 +120,7 @@ export default class Watermark {
   async process() {
     let qrCodeData = null;
 
-    if (this.settings.qrcode_enabled && this.settings.qrcode_text) {
+    if (this.settings.qrcode_enabled) {
       qrCodeData = await this.generateQRCode();
 
       if (qrCodeData?.error) {
@@ -201,12 +200,12 @@ export default class Watermark {
     newSettings.opacity = newSettings.opacity / 100;
 
     newSettings.qrcode_text = newSettings.qrcode_text
-      .replace("{homepage}", defaultHomepage())
+      .replace("{homepage}", getAbsoluteURL(""))
       .replace("{username}", this.currentUser.username)
       .replace("{sitename}", this.siteSettings.title);
 
     if (this.topicData) {
-      const topicUrl = getAbsoluteURL(this.topicData.url);
+      const topicUrl = getAbsoluteURL(this.topicData?.url) || "";
 
       newSettings.qrcode_text = newSettings.qrcode_text.replace(
         "{topic_url}",
