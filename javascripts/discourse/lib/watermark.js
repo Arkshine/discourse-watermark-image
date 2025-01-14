@@ -140,7 +140,6 @@ export default class Watermark {
   }
 
   async applyWatermark(qrCodeData) {
-    console.log("applyWatermark", qrCodeData);
     const params = await this.workerData(qrCodeData);
     const transferables = [params.upload.buffer];
 
