@@ -25,9 +25,8 @@ class WatermarkInit {
             }
 
             if (
-              !settings.watermark_image ||
-              !settings.watermark_qrcode_enabled ||
-              settings.watermark_qrcode_text.trim().length === 0
+              !settings.watermark_image &&
+              !settings.watermark_qrcode_enabled
             ) {
               return null;
             }

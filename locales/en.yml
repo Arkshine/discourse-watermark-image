@@ -42,7 +42,7 @@ en:
         Only applies when the watermark size mode is set to absolute.
       watermark_max_size: |
         Maximum size of the watermark (in % of the target image).<br>
-      watermark_rotate: Rotate the watermark (0-360 degrees).
+      watermark_rotate: Rotate the watermark (-360 to 360 degrees).
       watermark_blend_mode: |
         Choose how the watermark blends with the image.
         <details>

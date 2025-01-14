@@ -13,6 +13,7 @@ const workerQRCodeGenWasmUrl = settings.theme_uploads.worker_qrcodegen_wasm;
 
 export const WATERMARK_ALLOWED_EXTS = new Set([
   "png",
+  "jpg",
   "jpeg",
   "bmp",
   "ico",
@@ -139,6 +140,7 @@ export default class Watermark {
   }
 
   async applyWatermark(qrCodeData) {
+    console.log("applyWatermark", qrCodeData);
     const params = await this.workerData(qrCodeData);
     const transferables = [params.upload.buffer];
 
