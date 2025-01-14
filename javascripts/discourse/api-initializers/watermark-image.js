@@ -1,6 +1,7 @@
 import { setOwner } from "@ember/owner";
 import { service } from "@ember/service";
 import { withPluginApi } from "discourse/lib/plugin-api";
+import { isImage } from "discourse/lib/uploads";
 import { bind } from "discourse-common/utils/decorators";
 import { i18n } from "discourse-i18n";
 import { imageDataToFile } from "../lib/media-watermark-utils";
@@ -21,6 +22,10 @@ class WatermarkInit {
         return {
           watermarkFn: async (file) => {
             if (owner.isDestroyed || owner.isDestroying) {
+              return null;
+            }
+
+            if (!isImage(file.name.toLowerCase())) {
               return null;
             }
 
@@ -98,7 +103,10 @@ class WatermarkInit {
               const { uppyInstance } = this.uppyComposerUpload.uppyWrapper;
               const originalHandler = uppyInstance.opts.onBeforeFileAdded;
               uppyInstance.opts.onBeforeFileAdded = (currentFile) => {
-                if (originalHandler) {
+                if (
+                  originalHandler &&
+                  isImage(currentFile.name.toLowerCase())
+                ) {
                   const {
                     pattern: regexPattern,
                     extensions: commonExtensions,
