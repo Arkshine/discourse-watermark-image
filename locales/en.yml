@@ -11,7 +11,7 @@ en:
         There are placeholders available:<br>
         - <code>{homepage}</code> - The URL of the homepage<br>
         - <code>{username}</code> - The username of the user<br>
-        - <code>{topic_url}</code> - The URL of the topic<br>
+        - <code>{topic_url}</code> - The URL of the topic. Note that it won't work if you create a topic.<br>
       watermark_qrcode_color: The color of the QR code. Hexadecimal color codes and CSS variables are supported.
       watermark_qrcode_background_color: The background color of the QR code. Hexadecimal color codes and CSS variables are supported.
       watermark_qrcode_quiet_zone: Width of white space border around the QR code, measured in modules (squares, 0-10)
