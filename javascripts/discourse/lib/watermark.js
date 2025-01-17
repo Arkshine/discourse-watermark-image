@@ -115,7 +115,7 @@ export default class Watermark {
 
     this.file = file;
     this.overwriteOptions = params?.overwriteOptions || {};
-    this.topicData = params?.topic || {};
+    this.topicData = params?.topic;
   }
 
   async process() {
@@ -200,13 +200,13 @@ export default class Watermark {
     newSettings.margin_y = newSettings.margin_y / 100;
     newSettings.opacity = newSettings.opacity / 100;
 
-    newSettings.qrcode_text = newSettings.qrcode_text
-      .replace("{homepage}", getAbsoluteURL(""))
-      .replace("{username}", this.currentUser.username)
-      .replace("{sitename}", this.siteSettings.title);
+    if (newSettings.qrcode_text) {
+      newSettings.qrcode_text = newSettings.qrcode_text
+        .replace("{homepage}", getAbsoluteURL(""))
+        .replace("{username}", this.currentUser.username)
+        .replace("{sitename}", this.siteSettings.title);
 
-    if (this.topicData) {
-      const topicUrl = getAbsoluteURL(this.topicData?.url) || "";
+      const topicUrl = getAbsoluteURL(this.topicData?.url || "");
 
       newSettings.qrcode_text = newSettings.qrcode_text.replace(
         "{topic_url}",

@@ -61,12 +61,18 @@ class WatermarkInit {
               }
             }
 
+            let topicData = null;
+
+            if (composerModel.topic) {
+              topicData = {
+                id: composerModel.topic?.id,
+                title: composerModel.topic?.title,
+                url: composerModel.topic?.url,
+              };
+            }
+
             const watermark = new Watermark(owner, file.data, {
-              topic: {
-                id: composerModel.topic.id,
-                title: composerModel.topic.title,
-                url: composerModel.topic.url,
-              },
+              topic: topicData,
             });
 
             const imageData = await watermark.process();
