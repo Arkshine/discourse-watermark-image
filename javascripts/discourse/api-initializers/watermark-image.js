@@ -7,7 +7,7 @@ import { i18n } from "discourse-i18n";
 import { imageDataToFile } from "../lib/media-watermark-utils";
 import { imagesExtensions } from "../lib/uploads";
 import UppyMediaWatermark from "../lib/uppy-media-watermark-plugin";
-import { isImageAllowed, Watermark } from "../lib/watermark";
+import Watermark from "../lib/watermark";
 
 class WatermarkInit {
   @service currentUser;
@@ -26,10 +26,6 @@ class WatermarkInit {
             }
 
             if (!isImage(file.name.toLowerCase())) {
-              return null;
-            }
-
-            if (isImageAllowed(file.name.toLowerCase())) {
               return null;
             }
 
