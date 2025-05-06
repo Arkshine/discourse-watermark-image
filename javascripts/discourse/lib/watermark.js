@@ -25,6 +25,11 @@ export const WATERMARK_ALLOWED_EXTS_STRING = Array.from(WATERMARK_ALLOWED_EXTS)
   .map((ext) => `.${ext}`)
   .join(",");
 
+export function isImageAllowed(path) {
+  const ext = path.split(".").pop().toLowerCase();
+  return WATERMARK_ALLOWED_EXTS.has(ext);
+}
+
 class WorkerManager {
   @service siteSettings;
 
