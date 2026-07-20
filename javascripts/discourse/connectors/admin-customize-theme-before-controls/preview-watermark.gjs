@@ -122,10 +122,8 @@ export default class PreviewWatermark extends Component {
     return (
       currentRoute.name === "adminCustomizeThemes.show.index" &&
       currentRoute.attributes.component &&
-      currentRoute.attributes.theme_fields.length > 0 &&
-      currentRoute.attributes.theme_fields.findBy(
-        "name",
-        "discourse/api-initializers/watermark-image.js"
+      currentRoute.attributes.theme_fields.some((tf) =>
+        tf.name.endsWith("/watermark-image.js")
       )
     );
   }
