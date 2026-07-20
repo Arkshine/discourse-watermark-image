@@ -9,9 +9,9 @@ import { htmlSafe } from "@ember/template";
 import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
 import PickFilesButton from "discourse/components/pick-files-button";
+import { bind } from "discourse/lib/decorators";
 import { withPluginApi } from "discourse/lib/plugin-api";
 import draggable from "discourse/modifiers/draggable";
-import { bind } from "discourse-common/utils/decorators";
 import { i18n } from "discourse-i18n";
 import {
   imageDataToFile,
@@ -81,26 +81,6 @@ export default class PreviewWatermark extends Component {
       this.appEvents.on(event, handler)
     );
 
-    const createActionsElement = document.querySelector(".create-actions");
-    const watermarkPreviewContainer =
-      document.querySelector(CONTAINER_SELECTOR);
-
-    const handleSroll = () => {
-      const scrollTop = window.scrollY || window.pageYOffset;
-      if (scrollTop >= this.createActionsTop) {
-        watermarkPreviewContainer.style.top =
-          Math.max(this.createActionsTop, scrollTop) + "px";
-      }
-    };
-
-    if (createActionsElement && watermarkPreviewContainer) {
-      watermarkPreviewContainer.style.top =
-        Math.max(this.createActionsTop, window.scrollY || window.pageYOffset) +
-        "px";
-
-      window.addEventListener("scroll", handleSroll);
-    }
-
     return () => {
       document.querySelectorAll(SETTING_INPUT_SELECTOR).forEach((input) => {
         input.removeEventListener("input", this.onSettingChange);
@@ -111,8 +91,6 @@ export default class PreviewWatermark extends Component {
       uploadEvents.forEach(({ event, handler }) =>
         this.appEvents.off(event, handler)
       );
-
-      window.removeEventListener("scroll", handleSroll);
     };
   });
 
@@ -141,21 +119,6 @@ export default class PreviewWatermark extends Component {
   @action
   togglePreview() {
     this.showPreview = !this.showPreview;
-  }
-
-  @action
-  setPreviewPosition() {
-    const installButtonRect = document
-      .querySelector(".themes-list .create-actions")
-      .getBoundingClientRect();
-    const watermarkImageContainerRect = document
-      .querySelector('[data-setting="watermark_image"]')
-      .getBoundingClientRect();
-
-    this.createActionsTop = Math.max(
-      installButtonRect.y + window.scrollY,
-      watermarkImageContainerRect.y + window.scrollY
-    );
   }
 
   @action
@@ -248,7 +211,6 @@ export default class PreviewWatermark extends Component {
     this.imageSourceURL = url;
     this.imageSourceFile = file;
 
-    this.setPreviewPosition();
     this.showPreview = !this.site.mobileView;
 
     return file;
@@ -417,11 +379,13 @@ export default class PreviewWatermark extends Component {
     const target = event.target.closest(CONTAINER_SELECTOR);
     target.classList.add("dragging");
 
+    const rect = target.getBoundingClientRect();
+    target.style.bottom = "auto";
+    target.style.left = `${rect.left}px`;
+    target.style.top = `${rect.top}px`;
+
     this.dragging = true;
-    this.dragOffset = [
-      target.offsetLeft - event.clientX,
-      target.offsetTop - event.clientY,
-    ];
+    this.dragOffset = [rect.left - event.clientX, rect.top - event.clientY];
   }
 
   @bind
@@ -465,7 +429,6 @@ export default class PreviewWatermark extends Component {
         <div
           class="watermark-preview__container"
           {{this.registerEvents}}
-          {{didInsert this.setPreviewPosition}}
         >
           <div
             class="watermark-preview__header"

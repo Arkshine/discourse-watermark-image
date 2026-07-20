@@ -17,7 +17,7 @@
 
   .watermark-preview {
     &__container {
-      position: absolute;
+      position: fixed;
       left: 0;
       bottom: 0;
       z-index: 1;
@@ -26,12 +26,6 @@
         position: relative;
         width: 100%;
         height: auto;
-      }
-
-      transition: top 0.2s ease-in-out;
-
-      &.dragging {
-        transition: none;
       }
     }
 
