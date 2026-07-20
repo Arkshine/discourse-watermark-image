@@ -143,7 +143,9 @@ watermark_categories:
 watermark_groups:
   type: list
   list_type: group
-  default: "0"
+  resolve_group_membership: true
+  disallowed_groups: "4"
+  default: "5"
 
 watermark_skip_small_images:
   type: bool

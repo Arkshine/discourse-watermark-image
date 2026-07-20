@@ -1,5 +1,6 @@
 import { setOwner } from "@ember/owner";
 import { service } from "@ember/service";
+import { AUTO_GROUPS } from "discourse/lib/constants";
 import { withPluginApi } from "discourse/lib/plugin-api";
 import { isImage } from "discourse/lib/uploads";
 import { bind } from "discourse-common/utils/decorators";
@@ -52,14 +53,20 @@ class WatermarkInit {
               return null;
             }
 
-            if (settings.watermark_groups) {
+            if (Object.hasOwn(settings, "user_in_watermark_groups")) {
+              if (!settings.user_in_watermark_groups) {
+                return null;
+              }
+            }
+            // DEPRECATED: Once user_in_ is fully supported, remove this.
+            else if (settings.watermark_groups?.length) {
               const requiredGroups = settings.watermark_groups
                 .split("|")
-                .map((g) => Number(g));
+                .filter(Boolean)
+                .map((group) => Number(group));
 
-              if (
-                !requiredGroups.includes(0) &&
-                !this.currentUser.groups
+              if (!requiredGroups.includes(AUTO_GROUPS.everyone.id) &&
+                  !this.currentUser.groups
                   .map((group) => group.id)
                   .some((group) => requiredGroups.includes(group))
               ) {
