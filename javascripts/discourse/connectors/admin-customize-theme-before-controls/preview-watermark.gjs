@@ -1,5 +1,5 @@
+import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
-import Component from "@ember/component";
 import { action } from "@ember/object";
 import { getOwner } from "@ember/owner";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
@@ -33,7 +33,18 @@ const ACTIONS_SELECTOR = ".watermark-preview__actions";
 
 const UPLOAD_PREFIX_ID = "site-setting-image-uploader";
 
+const SETTING_BOUNDS = {
+  watermark_qrcode_quiet_zone: { min: 0, max: 10 },
+  watermark_opacity: { min: 1, max: 100 },
+  watermark_relative_width: { min: 1, max: 100 },
+  watermark_absolute_scale: { min: 0.01 },
+  watermark_max_size: { min: 1, max: 100 },
+  watermark_rotate: { min: -360, max: 360 },
+  watermark_pattern_max_count: { min: 0 },
+};
+
 export default class PreviewWatermark extends Component {
+  @service appEvents;
   @service router;
   @service site;
 
@@ -48,9 +59,13 @@ export default class PreviewWatermark extends Component {
   dragOffset = null;
 
   registerEvents = modifier(() => {
-    document.querySelectorAll(SETTING_INPUT_SELECTOR).forEach((input) => {
-      input.addEventListener("input", this.onSettingChange);
-    });
+    const onSettingInput = (event) => {
+      if (event.target?.matches?.(SETTING_INPUT_SELECTOR)) {
+        this.onSettingChange();
+      }
+    };
+
+    document.addEventListener("input", onSettingInput, { capture: true });
 
     const onClick = (event) => {
       const target = event.target;
@@ -66,11 +81,11 @@ export default class PreviewWatermark extends Component {
 
     document.addEventListener("click", onClick, { capture: true });
 
-    withPluginApi("1.8.0", (api) => {
+    withPluginApi((api) => {
       api.modifySelectKit("single-select").onChange(this.onSettingChange);
     });
 
-    const uploadEvents = this.outletArgs.theme.settings
+    const uploadEvents = this.args.theme.settings
       .filter((setting) => setting.type === "upload")
       .map((setting) => ({
         event: `upload-mixin:${UPLOAD_PREFIX_ID}-${setting.setting}:upload-success`,
@@ -82,9 +97,7 @@ export default class PreviewWatermark extends Component {
     );
 
     return () => {
-      document.querySelectorAll(SETTING_INPUT_SELECTOR).forEach((input) => {
-        input.removeEventListener("input", this.onSettingChange);
-      });
+      document.removeEventListener("input", onSettingInput, { capture: true });
 
       document.removeEventListener("click", onClick, { capture: true });
 
@@ -123,7 +136,7 @@ export default class PreviewWatermark extends Component {
 
   @action
   async applyWatermark(element, options = {}) {
-    const settingsValues = this.settingsValues;
+    const settingsValues = this.settingsValues();
     const emptyWatermark =
       !settingsValues.watermark_image &&
       !settingsValues.watermark_qrcode_enabled;
@@ -259,119 +272,53 @@ export default class PreviewWatermark extends Component {
     this.applyWatermark(element);
   }
 
-  get settingsValues() {
-    const settingsMap = this.outletArgs.theme.settings.reduce(
-      (acc, themeSetting) => ({
-        ...acc,
-        [themeSetting.setting]: themeSetting.type,
-      }),
-      {}
+  settingsValues() {
+    return this.args.theme.settings.reduce((values, themeSetting) => {
+      const name = themeSetting.setting;
+      const type = themeSetting.type;
+      let value = themeSetting.buffered.get("value");
+
+      switch (type) {
+        case "bool":
+          value = String(value) === "true";
+          break;
+        case "integer":
+          value = parseInt(value, 10);
+          break;
+        case "float":
+          value = /^-?\d+\.$/.test(value) ? NaN : parseFloat(value);
+          break;
+      }
+
+      if (this.#isValueOutOfBounds(name, type, value)) {
+        value = this.previousSettingsValues[name];
+      } else {
+        this.previousSettingsValues[name] = value;
+      }
+
+      values[name] = value;
+      return values;
+    }, {});
+  }
+
+  #isValueOutOfBounds(name, type, value) {
+    if (type !== "integer" && type !== "float") {
+      return false;
+    }
+
+    if (isNaN(value)) {
+      return true;
+    }
+
+    const bounds = SETTING_BOUNDS[name];
+    if (!bounds) {
+      return false;
+    }
+
+    return (
+      (bounds.min !== undefined && value < bounds.min) ||
+      (bounds.max !== undefined && value > bounds.max)
     );
-
-    const settingsNamesList = Object.keys(settingsMap);
-
-    return Array.from(document.querySelectorAll(SETTING_CONTAINER_SELECTOR))
-      .filter((element) => settingsNamesList.includes(element.dataset.setting))
-      .map((element) => {
-        const settingName = element.dataset.setting;
-        const inputType = settingsMap[settingName];
-
-        let inputValue;
-
-        switch (inputType) {
-          case "integer":
-          case "float":
-          case "string":
-            inputValue = element.querySelector("input")?.value;
-            break;
-          case "bool":
-            inputValue = element.querySelector("input")?.checked;
-            break;
-          case "enum":
-            inputValue = element.querySelector(".selected-name.choice").dataset
-              .value;
-            break;
-          case "upload":
-            inputValue = element
-              .querySelector(".lightbox")
-              ?.getAttribute("href");
-            break;
-        }
-
-        switch (inputType) {
-          case "integer":
-            inputValue = parseInt(inputValue, 10);
-            break;
-          case "float":
-            inputValue = !/^-?\d+\.$/.test(inputValue)
-              ? parseFloat(inputValue)
-              : NaN;
-            break;
-        }
-
-        const isValueOOB = () => {
-          if (["integer", "float"].includes(inputType)) {
-            const minMaxMapping = {
-              watermark_qrcode_quiet_zone: {
-                min: 0,
-                max: 10,
-              },
-              watermark_opacity: {
-                min: 1,
-                max: 100,
-              },
-              watermark_relative_width: {
-                min: 1,
-                max: 100,
-              },
-              watermark_absolute_scale: {
-                min: 0.01,
-              },
-              watermark_max_size: {
-                min: 1,
-                max: 100,
-              },
-              watermark_rotate: {
-                min: -360,
-                max: 360,
-              },
-              watermark_pattern_max_count: {
-                min: 0,
-              },
-            };
-
-            if (isNaN(inputValue)) {
-              return true;
-            }
-
-            if (minMaxMapping[settingName]) {
-              const { min, max } = minMaxMapping[settingName];
-              return (
-                (min !== undefined && inputValue < min) ||
-                (max !== undefined && inputValue > max)
-              );
-            }
-
-            return false;
-          }
-        };
-
-        if (isValueOOB()) {
-          inputValue = this.previousSettingsValues[settingName];
-        } else {
-          this.previousSettingsValues = {
-            ...this.previousSettingsValues,
-            [settingName]: inputValue,
-          };
-        }
-
-        return {
-          [settingName]: inputValue,
-        };
-      })
-      .reduce((acc, cur) => {
-        return { ...acc, ...cur };
-      }, {});
   }
 
   @bind
