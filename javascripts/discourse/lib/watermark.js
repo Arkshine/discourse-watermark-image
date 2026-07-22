@@ -100,6 +100,15 @@ class WorkerManager {
 }
 
 const workerManager = new WorkerManager();
+const watermarkFileCache = new Map();
+
+async function getWatermarkFile(url) {
+  if (!watermarkFileCache.has(url)) {
+    watermarkFileCache.set(url, await imageURLToFile(url));
+  }
+
+  return watermarkFileCache.get(url);
+}
 
 export default class Watermark {
   static getExtensionsRegex(allowedExts) {
@@ -169,7 +178,7 @@ export default class Watermark {
         buffer: qrCodeData.buffer,
       };
     } else {
-      const watermarkFile = await imageURLToFile(this.abolsuteWatermarkURL);
+      const watermarkFile = await getWatermarkFile(this.abolsuteWatermarkURL);
       watermarkData = {
         buffer: await watermarkFile.arrayBuffer(),
       };
