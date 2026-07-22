@@ -3,7 +3,7 @@ import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import { getOwner } from "@ember/owner";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
-import { debounce, later } from "@ember/runloop";
+import { debounce } from "@ember/runloop";
 import { service } from "@ember/service";
 import { htmlSafe } from "@ember/template";
 import { modifier } from "ember-modifier";
@@ -22,7 +22,8 @@ import Watermark, { WATERMARK_ALLOWED_EXTS_STRING } from "../../lib/watermark";
 const PREVIEW_IMAGE_WIDTH = "300px";
 const PREVIEW_IMAGE_HEIGHT = "200px";
 const IMAGE_BANK_URL = "https://picsum.photos/1200/800";
-const DEBOUNCED_UPDATE_IMAGE = 200;
+const UPDATE_DEBOUNCE = 25;
+const SPINNER_DELAY = 500;
 
 const SETTING_CONTAINER_SELECTOR = ".theme.settings > [data-setting]";
 const SETTING_INPUT_SELECTOR = `${SETTING_CONTAINER_SELECTOR} input:not([type="file"])`;
@@ -150,16 +151,13 @@ export default class PreviewWatermark extends Component {
       ".pick-files-button button"
     );
 
-    later(
-      this,
-      () => {
-        if (this.applyingWatermark) {
-          this.imageLoading = true;
-          uploadButton?.setAttribute("disabled", true);
-        }
-      },
-      DEBOUNCED_UPDATE_IMAGE
-    );
+    // Native setTimeout, not to block `convertToBlob`.
+    setTimeout(() => {
+      if (this.applyingWatermark) {
+        this.imageLoading = true;
+        uploadButton?.setAttribute("disabled", true);
+      }
+    }, SPINNER_DELAY);
 
     this.applyingWatermark = true;
 
@@ -263,7 +261,7 @@ export default class PreviewWatermark extends Component {
       this,
       this.onSettingChangeDebounced,
       this.imageElement,
-      DEBOUNCED_UPDATE_IMAGE
+      UPDATE_DEBOUNCE
     );
   }
 
