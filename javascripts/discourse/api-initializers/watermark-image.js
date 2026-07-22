@@ -204,7 +204,7 @@ export default {
   name: "discourse-watermark",
 
   initialize(owner) {
-    withPluginApi("1.38.0", (api) => {
+    withPluginApi((api) => {
       this.instance = new WatermarkInit(owner, api);
     });
   },
