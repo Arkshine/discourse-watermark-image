@@ -47,6 +47,10 @@ class WatermarkInit {
       watermark_qrcode_error_correction: WatermarkChoiceSegmented,
     };
 
+    const customLabels = {
+      watermark_qrcode_enabled: "Watermark source",
+    };
+
     api.modifyClass(
       "component:theme-setting-editor",
       (Superclass) =>
@@ -55,6 +59,10 @@ class WatermarkInit {
             return (
               customControls[this.setting?.setting] ?? super.resolvedComponent
             );
+          }
+
+          get settingName() {
+            return customLabels[this.setting?.setting] ?? super.settingName;
           }
         }
     );

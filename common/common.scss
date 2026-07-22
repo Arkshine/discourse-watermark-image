@@ -3,6 +3,41 @@
     margin-bottom: 0.5em !important;
   }
 
+  .watermark-tabs {
+    margin-bottom: var(--space-4);
+
+    .nav-pills {
+      display: flex;
+      gap: var(--space-2);
+      padding: 0;
+      list-style: none;
+      border-bottom: 1px solid var(--primary-low);
+    }
+
+    &__tab {
+      flex: 0 0 auto;
+      margin-bottom: -1px;
+      padding: var(--space-2) var(--space-3);
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--primary-medium);
+      font-size: var(--font-0);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: color 0.12s ease;
+
+      &:hover {
+        color: var(--primary);
+      }
+
+      &.active {
+        color: var(--tertiary);
+        border-bottom-color: var(--tertiary);
+      }
+    }
+  }
+
   [data-setting="watermark_blend_mode"],
   [data-setting="watermark_qrcode_min_version"] {
     details[open] > summary:first-of-type ~ *,

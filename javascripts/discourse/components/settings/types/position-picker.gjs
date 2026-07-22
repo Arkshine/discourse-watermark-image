@@ -16,7 +16,9 @@ const POSITIONS = [
 ];
 
 function positionName(position) {
-  return i18n(themePrefix(`settings_ui.positions.${position.replaceAll("-", "_")}`));
+  return i18n(
+    themePrefix(`settings_ui.positions.${position.replaceAll("-", "_")}`)
+  );
 }
 
 export default class WatermarkPositionPicker extends Component {

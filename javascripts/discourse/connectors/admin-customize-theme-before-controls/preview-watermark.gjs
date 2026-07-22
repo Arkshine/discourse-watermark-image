@@ -13,6 +13,7 @@ import { bind } from "discourse/lib/decorators";
 import { withPluginApi } from "discourse/lib/plugin-api";
 import draggable from "discourse/modifiers/draggable";
 import { i18n } from "discourse-i18n";
+import WatermarkSettingsTabs from "../../components/settings/tabs";
 import {
   imageDataToFile,
   imageURLToFile,
@@ -32,7 +33,14 @@ const CONTAINER_SELECTOR = ".watermark-preview__container";
 const IMAGE_SELECTOR = ".watermark-preview__resizable";
 const ACTIONS_SELECTOR = ".watermark-preview__actions";
 
-const UPLOAD_PREFIX_ID = "site-setting-image-uploader";
+const UPLOAD_PREFIX_ID = "site-setting-file-uploader";
+
+const SETTINGS_TABS = [
+  { id: "content" },
+  { id: "appearance" },
+  { id: "placement" },
+  { id: "rules" },
+];
 
 const SETTING_BOUNDS = {
   watermark_qrcode_quiet_zone: { min: 0, max: 10 },
@@ -52,7 +60,9 @@ export default class PreviewWatermark extends Component {
   @tracked showPreview;
   @tracked imageSourceURL;
   @tracked imageLoading;
+  @tracked tabsMount = null;
 
+  tabsSection = null;
   applyingWatermark = false;
   previousSettingsValues = {};
   resizing = false;
@@ -107,6 +117,10 @@ export default class PreviewWatermark extends Component {
       );
     };
   });
+  willDestroy() {
+    super.willDestroy(...arguments);
+    this.tabsMount?.remove();
+  }
 
   get shouldDisplay() {
     const { currentRoute } = this.router;
@@ -136,6 +150,21 @@ export default class PreviewWatermark extends Component {
   }
 
   @action
+  captureTabsMount() {
+    const section = document
+      .querySelector('.theme.settings [data-setting^="watermark_"]')
+      ?.closest(".theme.settings");
+
+    if (!section || this.tabsMount) {
+      return;
+    }
+
+    this.tabsSection = section;
+    this.tabsMount = document.createElement("div");
+    section.prepend(this.tabsMount);
+  }
+
+  @action
   async applyWatermark(element, options = {}) {
     const settingsValues = this.settingsValues();
     const emptyWatermark =
@@ -151,7 +180,6 @@ export default class PreviewWatermark extends Component {
       ".pick-files-button button"
     );
 
-    // Native setTimeout, not to block `convertToBlob`.
     setTimeout(() => {
       if (this.applyingWatermark) {
         this.imageLoading = true;
@@ -176,6 +204,7 @@ export default class PreviewWatermark extends Component {
     const watermark = new Watermark(getOwner(this), file, {
       overwriteOptions: settingsValues,
     });
+
     const imageData = await watermark.process();
 
     if (!imageData) {
@@ -368,13 +397,20 @@ export default class PreviewWatermark extends Component {
         @translatedLabel="Preview Watermark"
         @action={{this.togglePreview}}
         {{didInsert this.initImage}}
+        {{didInsert this.captureTabsMount}}
       />
 
+      {{#if this.tabsMount}}
+        {{#in-element this.tabsMount}}
+          <WatermarkSettingsTabs
+            @section={{this.tabsSection}}
+            @tabs={{SETTINGS_TABS}}
+          />
+        {{/in-element}}
+      {{/if}}
+
       {{#if this.showPreview}}
-        <div
-          class="watermark-preview__container"
-          {{this.registerEvents}}
-        >
+        <div class="watermark-preview__container" {{this.registerEvents}}>
           <div
             class="watermark-preview__header"
             {{draggable

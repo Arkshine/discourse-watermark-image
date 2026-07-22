@@ -1,10 +1,10 @@
-watermark_image:
-  type: upload
-  default: ""
-
 watermark_qrcode_enabled:
   type: bool
   default: false
+
+watermark_image:
+  type: upload
+  default: ""
 
 watermark_qrcode_text:
   type: string
