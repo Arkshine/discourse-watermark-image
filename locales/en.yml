@@ -85,3 +85,23 @@ en:
   composer:
     errors:
       upload_not_authorized: "Sorry, the file you are trying to upload doesn't support watermarking (authorized extensions: %{authorized_extensions})."
+  settings_ui:
+    source:
+      image: Image
+      qrcode: QR code
+    stepper:
+      decrease: Decrease
+      increase: Increase
+    color:
+      value: Color value
+      pick: Pick a color
+    positions:
+      top_left: Top left
+      top_center: Top center
+      top_right: Top right
+      center_left: Center left
+      center: Center
+      center_right: Center right
+      bottom_left: Bottom left
+      bottom_center: Bottom center
+      bottom_right: Bottom right

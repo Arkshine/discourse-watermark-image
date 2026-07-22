@@ -5,6 +5,15 @@ import { withPluginApi } from "discourse/lib/plugin-api";
 import { isImage } from "discourse/lib/uploads";
 import { bind } from "discourse-common/utils/decorators";
 import { i18n } from "discourse-i18n";
+import WatermarkBlendPicker from "../components/settings/types/blend-picker";
+import WatermarkChoiceSegmented from "../components/settings/types/choice-segmented";
+import WatermarkColorField from "../components/settings/types/color-field";
+import WatermarkPatternPicker from "../components/settings/types/pattern-picker";
+import WatermarkPositionPicker from "../components/settings/types/position-picker";
+import WatermarkRotationDial from "../components/settings/types/rotation-dial";
+import WatermarkSlider from "../components/settings/types/slider";
+import WatermarkSourceToggle from "../components/settings/types/source-toggle";
+import WatermarkStepper from "../components/settings/types/stepper";
 import { imageDataToFile } from "../lib/media-watermark-utils";
 import { imagesExtensions } from "../lib/uploads";
 import UppyMediaWatermark from "../lib/uppy-media-watermark-plugin";
@@ -16,6 +25,39 @@ class WatermarkInit {
   constructor(owner, api) {
     setOwner(this, owner);
     this.api = api;
+
+    const customControls = {
+      watermark_opacity: WatermarkSlider,
+      watermark_position: WatermarkPositionPicker,
+      watermark_margin_x: WatermarkStepper,
+      watermark_margin_y: WatermarkStepper,
+      watermark_rotate: WatermarkRotationDial,
+      watermark_pattern: WatermarkPatternPicker,
+      watermark_blend_mode: WatermarkBlendPicker,
+      watermark_size_mode: WatermarkChoiceSegmented,
+      watermark_relative_width: WatermarkSlider,
+      watermark_absolute_scale: WatermarkStepper,
+      watermark_max_size: WatermarkSlider,
+      watermark_pattern_max_count: WatermarkStepper,
+      watermark_pattern_spacing: WatermarkStepper,
+      watermark_qrcode_enabled: WatermarkSourceToggle,
+      watermark_qrcode_color: WatermarkColorField,
+      watermark_qrcode_background_color: WatermarkColorField,
+      watermark_qrcode_quiet_zone: WatermarkStepper,
+      watermark_qrcode_error_correction: WatermarkChoiceSegmented,
+    };
+
+    api.modifyClass(
+      "component:theme-setting-editor",
+      (Superclass) =>
+        class extends Superclass {
+          get resolvedComponent() {
+            return (
+              customControls[this.setting?.setting] ?? super.resolvedComponent
+            );
+          }
+        }
+    );
 
     api.addComposerUploadPreProcessor(
       UppyMediaWatermark,
