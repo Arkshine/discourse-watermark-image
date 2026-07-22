@@ -5,7 +5,7 @@ import { getOwner } from "@ember/owner";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import { debounce } from "@ember/runloop";
 import { service } from "@ember/service";
-import { htmlSafe } from "@ember/template";
+import { trustHTML } from "@ember/template";
 import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
 import PickFilesButton from "discourse/components/pick-files-button";
@@ -139,7 +139,7 @@ export default class PreviewWatermark extends Component {
   }
 
   get imageStyle() {
-    return htmlSafe(
+    return trustHTML(
       `width: ${PREVIEW_IMAGE_WIDTH}; min-width: ${PREVIEW_IMAGE_WIDTH}; min-height: ${PREVIEW_IMAGE_HEIGHT};`
     );
   }
