@@ -1,9 +1,9 @@
 import { setOwner } from "@ember/owner";
 import { service } from "@ember/service";
 import { AUTO_GROUPS } from "discourse/lib/constants";
+import { bind } from "discourse/lib/decorators";
 import { withPluginApi } from "discourse/lib/plugin-api";
 import { isImage } from "discourse/lib/uploads";
-import { bind } from "discourse-common/utils/decorators";
 import { i18n } from "discourse-i18n";
 import WatermarkBlendPicker from "../components/settings/types/blend-picker";
 import WatermarkChoiceSegmented from "../components/settings/types/choice-segmented";
@@ -107,8 +107,9 @@ class WatermarkInit {
                 .filter(Boolean)
                 .map((group) => Number(group));
 
-              if (!requiredGroups.includes(AUTO_GROUPS.everyone.id) &&
-                  !this.currentUser.groups
+              if (
+                !requiredGroups.includes(AUTO_GROUPS.everyone.id) &&
+                !this.currentUser.groups
                   .map((group) => group.id)
                   .some((group) => requiredGroups.includes(group))
               ) {
