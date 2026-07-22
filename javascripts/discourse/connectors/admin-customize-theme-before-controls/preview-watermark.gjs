@@ -68,6 +68,7 @@ export default class PreviewWatermark extends Component {
   resizing = false;
   dragging = false;
   dragOffset = null;
+  previewObjectURL = null;
 
   registerEvents = modifier(() => {
     const onSettingInput = (event) => {
@@ -223,11 +224,11 @@ export default class PreviewWatermark extends Component {
     this.imageLoading = false;
     uploadButton?.removeAttribute("disabled");
 
-    const reader = new FileReader();
-    reader.readAsDataURL(watermarkFile);
-    reader.onload = (e) => {
-      element.firstChild.src = e.target.result;
-    };
+    if (this.previewObjectURL) {
+      URL.revokeObjectURL(this.previewObjectURL);
+    }
+    this.previewObjectURL = URL.createObjectURL(watermarkFile);
+    element.firstChild.src = this.previewObjectURL;
   }
 
   @action
