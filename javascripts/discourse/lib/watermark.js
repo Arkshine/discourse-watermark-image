@@ -1,6 +1,7 @@
 import { setOwner } from "@ember/owner";
 import { service } from "@ember/service";
-import { getAbsoluteURL } from "discourse-common/lib/get-url";
+import { resolveColor } from "discourse/lib/color-transformations";
+import { getAbsoluteURL } from "discourse/lib/get-url";
 import { imageURLToFile } from "./media-watermark-utils";
 
 const workerWatermarkUrl = settings.theme_uploads_local.worker_watermark;
@@ -229,19 +230,18 @@ export default class Watermark {
     }
 
     const processQRColor = (color, defaultColor) => {
+      if (!color) {
+        return defaultColor;
+      }
+
       if (color.startsWith("var(--") || color.startsWith("--")) {
-        color = getComputedStyle(document.documentElement).getPropertyValue(
-          color.replace(/var\((--.*?)\)/g, "$1")
-        );
-
-        return color || defaultColor;
+        color = getComputedStyle(document.documentElement)
+          .getPropertyValue(color.replace(/var\((--.*?)\)/g, "$1"))
+          .trim();
       }
 
-      if (/^#[0-9A-F]{6}$/i.test(color)) {
-        return color;
-      }
-
-      return defaultColor;
+      // Full 6-digit hex — the QR worker rejects shorthand like `#222`.
+      return resolveColor(color) || defaultColor;
     };
 
     newSettings.qrcode_color = processQRColor(
