@@ -477,8 +477,7 @@ async function applyWatermark(event) {
     const maxHeight = uploadHeight * (watermarkParams.max_size / 100);
 
     if (watermarkParams.size_mode === "relative") {
-      const targetWidth = uploadWidth * (watermarkParams.relative_width / 100);
-      watermarkWidth = Math.min(targetWidth, maxWidth);
+      watermarkWidth = uploadWidth * (watermarkParams.relative_width / 100);
 
       if (watermarkParams.isQRCode) {
         const minSize = calculateMinQRSize(
@@ -489,14 +488,6 @@ async function applyWatermark(event) {
 
         watermarkWidth = Math.max(watermarkWidth, minSize);
         watermarkHeight = watermarkWidth;
-
-        if (watermarkWidth > maxWidth) {
-          console.warn(
-            "QR code may not be readable at this size - content may be too large"
-          );
-          watermarkWidth = maxWidth;
-          watermarkHeight = maxWidth;
-        }
       } else {
         watermarkHeight = watermarkWidth / aspectRatio;
       }

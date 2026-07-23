@@ -1,0 +1,90 @@
+.admin-interface {
+  .watermark-tabs {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    border-bottom: 1px solid var(--primary-low);
+
+    .horizontal-overflow-nav {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .nav-pills {
+      display: flex;
+      gap: var(--space-2);
+      padding: 0;
+      list-style: none;
+    }
+
+    &__tab {
+      flex: 0 0 auto;
+      margin-bottom: -1px;
+      padding: var(--space-2) var(--space-3);
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--primary-medium);
+      font-size: var(--font-0);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: color 0.12s ease;
+
+      &:hover {
+        color: var(--primary);
+      }
+
+      &.active {
+        color: var(--tertiary);
+        border-bottom-color: var(--tertiary);
+      }
+    }
+
+    &__preview-toggle {
+      flex: 0 0 auto;
+      align-self: center;
+    }
+  }
+
+  .theme.settings[data-active-tab="content"]
+    [data-setting]:not(
+      [data-setting="watermark_qrcode_enabled"],
+      [data-setting="watermark_image"],
+      [data-setting="watermark_qrcode_text"],
+      [data-setting="watermark_qrcode_color"],
+      [data-setting="watermark_qrcode_background_color"],
+      [data-setting="watermark_qrcode_quiet_zone"],
+      [data-setting="watermark_qrcode_error_correction"]
+    ),
+  .theme.settings[data-active-tab="appearance"]
+    [data-setting]:not(
+      [data-setting="watermark_opacity"],
+      [data-setting="watermark_blend_mode"],
+      [data-setting="watermark_size_mode"],
+      [data-setting="watermark_relative_width"],
+      [data-setting="watermark_absolute_scale"],
+      [data-setting="watermark_max_size"]
+    ),
+  .theme.settings[data-active-tab="placement"]
+    [data-setting]:not(
+      [data-setting="watermark_position"],
+      [data-setting="watermark_margin_x"],
+      [data-setting="watermark_margin_y"],
+      [data-setting="watermark_rotate"],
+      [data-setting="watermark_pattern"],
+      [data-setting="watermark_pattern_allow_partial"],
+      [data-setting="watermark_pattern_max_count"],
+      [data-setting="watermark_pattern_spacing"]
+    ),
+  .theme.settings[data-active-tab="rules"]
+    [data-setting]:not(
+      [data-setting="watermark_categories"],
+      [data-setting="watermark_groups"],
+      [data-setting="watermark_skip_small_images"],
+      [data-setting="watermark_min_image_dimensions"],
+      [data-setting="watermark_allow_non_supported_uploads"]
+    ) {
+    display: none;
+  }
+}

@@ -1,0 +1,73 @@
+.admin-interface {
+  .control-unit[data-watermark-collapsible] {
+    .mini-title {
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+
+      &::before {
+        content: "►";
+        margin-right: 0.4em;
+        transition: transform 0.15s ease;
+      }
+    }
+
+    &[data-collapsed="false"] .mini-title::before {
+      transform: rotate(90deg);
+    }
+
+    &[data-collapsed="true"] .translation-selector-container ~ * {
+      display: none;
+    }
+  }
+
+  .theme.settings:has(
+      [data-setting="watermark_qrcode_enabled"] input[value="image"]:checked
+    ) {
+    [data-setting="watermark_qrcode_text"],
+    [data-setting="watermark_qrcode_color"],
+    [data-setting="watermark_qrcode_background_color"],
+    [data-setting="watermark_qrcode_quiet_zone"],
+    [data-setting="watermark_qrcode_error_correction"] {
+      display: none;
+    }
+  }
+
+  .theme.settings:has(
+      [data-setting="watermark_qrcode_enabled"] input[value="qrcode"]:checked
+    ) {
+    [data-setting="watermark_image"] {
+      display: none;
+    }
+  }
+
+  .theme.settings:has(
+      [data-setting="watermark_size_mode"] input[value="absolute"]:checked
+    ) {
+    [data-setting="watermark_relative_width"] {
+      display: none;
+    }
+  }
+
+  .theme.settings:has(
+      [data-setting="watermark_size_mode"] input[value="relative"]:checked
+    ) {
+    [data-setting="watermark_absolute_scale"],
+    [data-setting="watermark_max_size"] {
+      display: none;
+    }
+  }
+
+  [data-setting="watermark_blend_mode"],
+  [data-setting="watermark_qrcode_min_version"] {
+    details[open] > summary:first-of-type ~ *,
+    details.open > summary:first-of-type ~ * {
+      display: inline-block;
+    }
+
+    .setting-value h2 {
+      color: var(--primary-medium);
+    }
+  }
+}

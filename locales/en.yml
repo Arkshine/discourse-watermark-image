@@ -77,6 +77,8 @@ en:
     buttons:
       refresh: Change image
       close: Close preview
+      show: Show preview
+      hide: Hide preview
   composer:
     errors:
       upload_not_authorized: "Sorry, the file you are trying to upload doesn't support watermarking (authorized extensions: %{authorized_extensions})."
