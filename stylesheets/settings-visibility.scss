@@ -22,7 +22,7 @@
     }
   }
 
-  .theme.settings:has(
+  .theme.settings:not([data-searching]):has(
       [data-setting="watermark_qrcode_enabled"] input[value="image"]:checked
     ) {
     [data-setting="watermark_qrcode_text"],
@@ -34,7 +34,7 @@
     }
   }
 
-  .theme.settings:has(
+  .theme.settings:not([data-searching]):has(
       [data-setting="watermark_qrcode_enabled"] input[value="qrcode"]:checked
     ) {
     [data-setting="watermark_image"] {
@@ -42,7 +42,7 @@
     }
   }
 
-  .theme.settings:has(
+  .theme.settings:not([data-searching]):has(
       [data-setting="watermark_size_mode"] input[value="absolute"]:checked
     ) {
     [data-setting="watermark_relative_width"] {
@@ -50,7 +50,7 @@
     }
   }
 
-  .theme.settings:has(
+  .theme.settings:not([data-searching]):has(
       [data-setting="watermark_size_mode"] input[value="relative"]:checked
     ) {
     [data-setting="watermark_absolute_scale"],
