@@ -28,6 +28,10 @@ export default modifier((element, [targetSelector], named = {}) => {
       return;
     }
 
+    if (event.target.closest("button, a, input, select, textarea, .btn")) {
+      return;
+    }
+
     const target = element.closest(targetSelector);
 
     if (!target) {
