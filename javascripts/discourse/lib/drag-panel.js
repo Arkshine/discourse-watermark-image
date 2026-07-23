@@ -70,6 +70,8 @@ export class DragPanel {
   updateCSS() {
     this.panel.style.left = "0px";
     this.panel.style.top = "0px";
+    this.panel.style.right = "auto";
+    this.panel.style.bottom = "auto";
     this.panel.style.setProperty(
       "transform",
       `translate3d(${Math.round(this.currentX)}px, ${Math.round(this.currentY)}px, 0)`,
