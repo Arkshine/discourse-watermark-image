@@ -59,6 +59,15 @@
     }
   }
 
+  .theme.settings:not([data-searching]):has(
+      [data-setting="watermark_skip_small_images"]
+        input[type="checkbox"]:not(:checked)
+    ) {
+    [data-setting="watermark_min_image_dimensions"] {
+      display: none;
+    }
+  }
+
   [data-setting="watermark_blend_mode"],
   [data-setting="watermark_qrcode_min_version"] {
     details[open] > summary:first-of-type ~ *,
