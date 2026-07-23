@@ -395,20 +395,20 @@ export default class WatermarkPreview extends Component {
             @acceptedFormatsOverride={{WATERMARK_ALLOWED_EXTS_STRING}}
             @acceptedFileTypesString={{WATERMARK_ALLOWED_EXTS_STRING}}
             @icon="upload"
-            class="btn-flat btn-small"
+            class="btn-transparent"
             accept="image/*"
             name="image-uploader"
           />
           <DButton
             @icon="arrows-rotate"
-            class="btn-flat btn-small"
+            class="btn-transparent"
             @translatedTitle={{i18n (themePrefix "preview.buttons.refresh")}}
             @disabled={{this.imageLoading}}
             @action={{this.refreshImage}}
           />
           <DButton
             @icon="xmark"
-            class="btn-flat btn-small"
+            class="btn-transparent"
             @translatedTitle={{i18n (themePrefix "preview.buttons.close")}}
             @action={{@onClose}}
           />
