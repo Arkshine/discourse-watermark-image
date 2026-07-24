@@ -77,10 +77,6 @@ en:
       upload_not_authorized: "Sorry, the file you are trying to upload doesn't support watermarking (authorized extensions: %{authorized_extensions})."
   settings_ui:
     tabs_label: Watermark settings
-    search:
-      placeholder: Search settings…
-      results: Results
-      reset: Reset filter
     tabs:
       content: Content
       appearance: Appearance

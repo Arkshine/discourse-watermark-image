@@ -39,10 +39,6 @@
         color: var(--tertiary);
         border-bottom-color: var(--tertiary);
       }
-
-      &[role="status"] {
-        cursor: default;
-      }
     }
 
     &__preview-toggle {
@@ -59,7 +55,7 @@
     display: none;
   }
 
-  .theme.settings[data-active-tab="content"]:not([data-searching])
+  .theme.settings[data-active-tab="content"]
     [data-setting]:not(
       [data-setting="watermark_qrcode_enabled"],
       [data-setting="watermark_image"],
@@ -69,7 +65,7 @@
       [data-setting="watermark_qrcode_quiet_zone"],
       [data-setting="watermark_qrcode_error_correction"]
     ),
-  .theme.settings[data-active-tab="appearance"]:not([data-searching])
+  .theme.settings[data-active-tab="appearance"]
     [data-setting]:not(
       [data-setting="watermark_opacity"],
       [data-setting="watermark_blend_mode"],
@@ -78,7 +74,7 @@
       [data-setting="watermark_absolute_scale"],
       [data-setting="watermark_max_size"]
     ),
-  .theme.settings[data-active-tab="placement"]:not([data-searching])
+  .theme.settings[data-active-tab="placement"]
     [data-setting]:not(
       [data-setting="watermark_position"],
       [data-setting="watermark_margin_x"],
@@ -89,7 +85,7 @@
       [data-setting="watermark_pattern_max_count"],
       [data-setting="watermark_pattern_spacing"]
     ),
-  .theme.settings[data-active-tab="rules"]:not([data-searching])
+  .theme.settings[data-active-tab="rules"]
     [data-setting]:not(
       [data-setting="watermark_categories"],
       [data-setting="watermark_groups"],
