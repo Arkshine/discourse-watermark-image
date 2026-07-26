@@ -1,3 +1,82 @@
+
+watermark_default_enabled:
+  type: bool
+  default: false
+
+watermark_profiles:
+  type: objects
+  default: []
+  schema:
+    name: profile
+    identifier: name
+    properties:
+      name:
+        type: string
+        required: true
+        validations:
+          min_length: 1
+      enabled:
+        type: boolean
+      categories:
+        type: categories
+      groups:
+        type: groups
+        resolve_group_membership: true
+      qrcode_enabled:
+        type: boolean
+      image:
+        type: upload
+      qrcode_text:
+        type: string
+      qrcode_color:
+        type: string
+      qrcode_background_color:
+        type: string
+      qrcode_quiet_zone:
+        type: integer
+        validations: { min: 0, max: 10 }
+      qrcode_error_correction:
+        type: enum
+        choices: [Low, Medium, Quarter, High]
+      position:
+        type: enum
+        choices: [top-left, top-center, top-right, center-left, center, center-right, bottom-left, bottom-center, bottom-right]
+      margin_x:
+        type: integer
+      margin_y:
+        type: integer
+      opacity:
+        type: integer
+        validations: { min: 1, max: 100 }
+      size_mode:
+        type: enum
+        choices: [relative, absolute]
+      relative_width:
+        type: integer
+        validations: { min: 1, max: 100 }
+      absolute_scale:
+        type: float
+        validations: { min: 0.01 }
+      max_size:
+        type: integer
+        validations: { min: 1, max: 100 }
+      rotate:
+        type: integer
+        validations: { min: -360, max: 360 }
+      pattern:
+        type: enum
+        choices: [single, grid, diagonal, random]
+      pattern_allow_partial:
+        type: boolean
+      pattern_max_count:
+        type: integer
+        validations: { min: 0 }
+      pattern_spacing:
+        type: integer
+      blend_mode:
+        type: enum
+        choices: [normal, overlay, over, atop, xor, plus, multiply, burn, difference, soft_light, screen, hard_light, dodge, exclusion, lighten, darken]
+
 watermark_qrcode_enabled:
   type: bool
   default: false

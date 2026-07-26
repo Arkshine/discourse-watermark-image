@@ -2,6 +2,86 @@ en:
   theme_metadata:
     description: ""
     settings:
+      watermark_default_enabled: Apply a default watermark, used when no profile matches the upload.
+      watermark_profiles:
+        description: "Per-target watermark profiles (experimental)."
+        schema:
+          properties:
+            name:
+              label: Name
+              description: A label for this profile.
+            enabled:
+              label: Enabled
+              description: Turn this profile on or off without deleting it.
+            categories:
+              label: Categories
+              description: Apply this profile to these categories.
+            groups:
+              label: Groups
+              description: Apply this profile to users in these groups.
+            qrcode_enabled:
+              label: Source
+              description: Whether the watermark is an image or a generated QR code.
+            image:
+              label: Image
+              description: The watermark image for this profile.
+            qrcode_text:
+              label: QR text
+              description: The text to encode in the QR code.
+            qrcode_color:
+              label: QR color
+              description: The color of the QR code.
+            qrcode_background_color:
+              label: QR background color
+              description: The background color of the QR code.
+            qrcode_quiet_zone:
+              label: QR quiet zone
+              description: White-space border around the QR code, in modules (0-10).
+            qrcode_error_correction:
+              label: QR error correction
+              description: Error-correction level for the QR code.
+            position:
+              label: Position
+              description: Where the watermark appears.
+            margin_x:
+              label: Horizontal margin
+              description: Horizontal offset from the edge (% of the image).
+            margin_y:
+              label: Vertical margin
+              description: Vertical offset from the edge (% of the image).
+            opacity:
+              label: Opacity
+              description: How visible the watermark is (1-100%).
+            size_mode:
+              label: Size mode
+              description: Size relative to the image, or the original absolute size.
+            relative_width:
+              label: Relative width
+              description: Width relative to the image (%). Relative mode only.
+            absolute_scale:
+              label: Absolute scale
+              description: Scale of the original watermark size. Absolute mode only.
+            max_size:
+              label: Max size
+              description: Maximum watermark size (% of the image). Absolute mode only.
+            rotate:
+              label: Rotation
+              description: Rotate the watermark (-360 to 360 degrees).
+            pattern:
+              label: Pattern
+              description: How the watermark is repeated.
+            pattern_allow_partial:
+              label: Allow partial
+              description: Allow partial watermarks at the edges of the image.
+            pattern_max_count:
+              label: Max repeats
+              description: Maximum number of repeats (0 is infinite).
+            pattern_spacing:
+              label: Spacing
+              description: Spacing between repeats (% of the image).
+            blend_mode:
+              label: Blend mode
+              description: How the watermark blends with the image.
       watermark_image: |
         The image to use as watermark.<br>
         Supported formats: PNG, JPEG, BMP, ICO, TIFF, WEBP.
@@ -81,7 +161,7 @@ en:
       content: Content
       appearance: Appearance
       placement: Placement
-      rules: Rules
+      rules: Conditions
     source:
       image: Image
       qrcode: QR code

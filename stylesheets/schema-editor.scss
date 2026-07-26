@@ -1,0 +1,157 @@
+.admin-interface {
+  .customize-show-schema__header h2 .watermark-schema-preview__mount {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: var(--space-2);
+
+    .watermark-schema-preview__toggle {
+      font-size: var(--font-0-rem);
+    }
+  }
+
+  .watermark-schema-field {
+    display: contents;
+  }
+
+  .schema-field[data-name="qrcode_enabled"] .schema-field__input,
+  .schema-field[data-name="enabled"] .schema-field__input {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .schema-field__input .watermark-rotation-dial .watermark-stepper {
+    align-self: center;
+  }
+
+  .schema-field__input {
+    .watermark-slider,
+    .watermark-stepper,
+    .watermark-position-picker,
+    .watermark-pattern-picker,
+    .watermark-blend-picker,
+    .watermark-choice-segmented,
+    .watermark-color-field,
+    .watermark-rotation-dial {
+      align-self: flex-start;
+    }
+
+    .watermark-stepper__input {
+      width: 3.5em;
+    }
+
+    .watermark-color-field__text {
+      width: 10em;
+    }
+
+    .watermark-slider input[type="range"] {
+      width: auto;
+    }
+  }
+
+  .schema-setting-editor__fields {
+    &:has(
+      .schema-field[data-name="qrcode_enabled"] input[value="image"]:checked
+    ) {
+      .schema-field[data-name="qrcode_text"],
+      .schema-field[data-name="qrcode_color"],
+      .schema-field[data-name="qrcode_background_color"],
+      .schema-field[data-name="qrcode_quiet_zone"],
+      .schema-field[data-name="qrcode_error_correction"] {
+        display: none;
+      }
+    }
+
+    &:has(
+      .schema-field[data-name="qrcode_enabled"] input[value="qrcode"]:checked
+    ) {
+      .schema-field[data-name="image"] {
+        display: none;
+      }
+    }
+
+    &:has(
+      .schema-field[data-name="size_mode"] input[value="absolute"]:checked
+    ) {
+      .schema-field[data-name="relative_width"] {
+        display: none;
+      }
+    }
+
+    &:has(
+      .schema-field[data-name="size_mode"] input[value="relative"]:checked
+    ) {
+      .schema-field[data-name="absolute_scale"],
+      .schema-field[data-name="max_size"] {
+        display: none;
+      }
+    }
+  }
+
+  .schema-setting-editor__fields[data-active-tab="content"]
+    .schema-field:not(
+      [data-name="name"],
+      [data-name="enabled"],
+      [data-name="qrcode_enabled"],
+      [data-name="image"],
+      [data-name="qrcode_text"],
+      [data-name="qrcode_color"],
+      [data-name="qrcode_background_color"],
+      [data-name="qrcode_quiet_zone"],
+      [data-name="qrcode_error_correction"]
+    ),
+  .schema-setting-editor__fields[data-active-tab="appearance"]
+    .schema-field:not(
+      [data-name="name"],
+      [data-name="enabled"],
+      [data-name="opacity"],
+      [data-name="blend_mode"],
+      [data-name="size_mode"],
+      [data-name="relative_width"],
+      [data-name="absolute_scale"],
+      [data-name="max_size"]
+    ),
+  .schema-setting-editor__fields[data-active-tab="placement"]
+    .schema-field:not(
+      [data-name="name"],
+      [data-name="enabled"],
+      [data-name="position"],
+      [data-name="margin_x"],
+      [data-name="margin_y"],
+      [data-name="rotate"],
+      [data-name="pattern"],
+      [data-name="pattern_allow_partial"],
+      [data-name="pattern_max_count"],
+      [data-name="pattern_spacing"]
+    ),
+  .schema-setting-editor__fields[data-active-tab="rules"]
+    .schema-field:not(
+      [data-name="name"],
+      [data-name="enabled"],
+      [data-name="categories"],
+      [data-name="groups"]
+    ) {
+    display: none;
+  }
+
+  .schema-setting-editor__fields {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .schema-setting-editor__fields .schema-field[data-name="name"] {
+    order: -2;
+  }
+
+  .schema-setting-editor__fields .schema-field[data-name="enabled"] {
+    order: -1;
+  }
+
+  .schema-setting-editor__fields:has(
+    .schema-field[data-name="enabled"] [role="switch"][aria-checked="false"]
+  ) {
+    .watermark-schema-tabs-mount,
+    .schema-field:not([data-name="name"], [data-name="enabled"]) {
+      display: none;
+    }
+  }
+}

@@ -96,7 +96,9 @@ export default class PreviewWatermark extends Component {
     }
 
     this.tabsSection = section;
+
     this.tabsMount = document.createElement("div");
+    this.tabsMount.className = "watermark-settings-tabs-mount";
     section.prepend(this.tabsMount);
   }
 

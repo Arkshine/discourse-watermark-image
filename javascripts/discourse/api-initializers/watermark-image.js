@@ -1,3 +1,4 @@
+import { action } from "@ember/object";
 import { setOwner } from "@ember/owner";
 import { service } from "@ember/service";
 import { AUTO_GROUPS } from "discourse/lib/constants";
@@ -5,6 +6,9 @@ import { bind } from "discourse/lib/decorators";
 import { withPluginApi } from "discourse/lib/plugin-api";
 import { isImage } from "discourse/lib/uploads";
 import { i18n } from "discourse-i18n";
+import SchemaFieldControl, {
+  SCHEMA_CONTROLS,
+} from "../components/settings/schema-field-control";
 import WatermarkBlendPicker from "../components/settings/types/blend-picker";
 import WatermarkChoiceSegmented from "../components/settings/types/choice-segmented";
 import WatermarkColorField from "../components/settings/types/color-field";
@@ -14,10 +18,112 @@ import WatermarkRotationDial from "../components/settings/types/rotation-dial";
 import WatermarkSlider from "../components/settings/types/slider";
 import WatermarkSourceToggle from "../components/settings/types/source-toggle";
 import WatermarkStepper from "../components/settings/types/stepper";
+import WatermarkSwitch from "../components/settings/types/switch";
 import { imageDataToFile } from "../lib/media-watermark-utils";
 import { imagesExtensions } from "../lib/uploads";
 import UppyMediaWatermark from "../lib/uppy-media-watermark-plugin";
 import Watermark, { isImageAllowed } from "../lib/watermark";
+
+const PROFILE_META_KEYS = new Set([
+  "name",
+  "enabled",
+  "categories",
+  "groups",
+  "user_in_groups",
+]);
+
+function matchProfile(profiles, composerModel, currentUser) {
+  if (!Array.isArray(profiles)) {
+    return null;
+  }
+
+  return (
+    profiles.find((profile) => {
+      if (!profile.enabled) {
+        return false;
+      }
+
+      const categories = profile.categories ?? [];
+
+      if (categories.length && !categories.includes(composerModel.categoryId)) {
+        return false;
+      }
+
+      if (Object.hasOwn(profile, "user_in_groups")) {
+        if (!profile.user_in_groups) {
+          return false;
+        }
+      }
+      // DEPRECATED: Once user_in_ is fully supported, remove this.
+      else if (profile.groups?.length) {
+        const requiredGroups = profile.groups
+          .split("|")
+          .filter(Boolean)
+          .map((group) => Number(group));
+
+        if (
+          !requiredGroups.includes(AUTO_GROUPS.everyone.id) &&
+          !currentUser.groups
+            .map((group) => group.id)
+            .some((group) => requiredGroups.includes(group))
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    }) ?? null
+  );
+}
+
+const PROFILE_CONFIG_KEYS = [
+  "qrcode_enabled",
+  "qrcode_text",
+  "qrcode_color",
+  "qrcode_background_color",
+  "qrcode_quiet_zone",
+  "qrcode_error_correction",
+  "position",
+  "margin_x",
+  "margin_y",
+  "opacity",
+  "size_mode",
+  "relative_width",
+  "absolute_scale",
+  "max_size",
+  "rotate",
+  "pattern",
+  "pattern_allow_partial",
+  "pattern_max_count",
+  "pattern_spacing",
+  "blend_mode",
+];
+
+function flatProfileSeed() {
+  const seed = { enabled: true };
+
+  for (const key of PROFILE_CONFIG_KEYS) {
+    seed[key] = settings[`watermark_${key}`];
+  }
+
+  return seed;
+}
+
+function profileToOverwriteOptions(profile) {
+  const options = {};
+
+  if (profile) {
+    for (const [key, value] of Object.entries(profile)) {
+      if (PROFILE_META_KEYS.has(key) || value === "" || value == null) {
+        continue;
+      }
+
+      options[`watermark_${key}`] = value;
+    }
+  }
+
+  return options;
+}
 
 class WatermarkInit {
   @service currentUser;
@@ -27,6 +133,7 @@ class WatermarkInit {
     this.api = api;
 
     const customControls = {
+      watermark_default_enabled: WatermarkSwitch,
       watermark_opacity: WatermarkSlider,
       watermark_position: WatermarkPositionPicker,
       watermark_margin_x: WatermarkStepper,
@@ -67,6 +174,79 @@ class WatermarkInit {
         }
     );
 
+    api.modifyClass(
+      "component:schema-setting/field",
+      (Superclass) =>
+        class extends Superclass {
+          get component() {
+            if (
+              this.args.setting?.setting === "watermark_profiles" &&
+              SCHEMA_CONTROLS[this.args.name]
+            ) {
+              return SchemaFieldControl;
+            }
+
+            return super.component;
+          }
+        }
+    );
+
+    api.modifyClass(
+      "component:schema-setting/editor",
+      (Superclass) =>
+        class extends Superclass {
+          @service appEvents;
+
+          constructor() {
+            super(...arguments);
+            this.publishWatermarkProfile();
+          }
+
+          @action
+          inputFieldChanged(field, newVal) {
+            const result = super.inputFieldChanged(field, newVal);
+            this.publishWatermarkProfile();
+            return result;
+          }
+
+          @action
+          updateIndex(index) {
+            const result = super.updateIndex(index);
+            this.publishWatermarkProfile();
+            return result;
+          }
+
+          @action
+          addItem() {
+            const result = super.addItem();
+            if (this.args.setting?.setting === "watermark_profiles") {
+              Object.assign(
+                this.activeData[this.activeIndex],
+                flatProfileSeed()
+              );
+              this.publishWatermarkProfile();
+            }
+            return result;
+          }
+
+          @action
+          async removeItem() {
+            const result = await super.removeItem();
+            this.publishWatermarkProfile();
+            return result;
+          }
+
+          publishWatermarkProfile() {
+            if (this.args.setting?.setting === "watermark_profiles") {
+              this.appEvents.trigger(
+                "watermark:profile-changed",
+                this.activeData?.[this.activeIndex]
+              );
+            }
+          }
+        }
+    );
+
     api.addComposerUploadPreProcessor(
       UppyMediaWatermark,
       ({ composerModel, isMobileDevice }) => {
@@ -86,42 +266,53 @@ class WatermarkInit {
               return null;
             }
 
-            if (
-              !settings.watermark_image &&
-              !settings.watermark_qrcode_enabled
-            ) {
+            const profile = matchProfile(
+              settings.watermark_profiles,
+              composerModel,
+              api.getCurrentUser()
+            );
+            const overwriteOptions = profileToOverwriteOptions(profile);
+            const merged = { ...settings, ...overwriteOptions };
+
+            if (!merged.watermark_image && !merged.watermark_qrcode_enabled) {
               return null;
             }
 
-            if (
-              settings.watermark_categories &&
-              !settings.watermark_categories
-                .split("|")
-                .map((c) => Number(c))
-                .includes(composerModel.categoryId)
-            ) {
-              return null;
-            }
-
-            if (Object.hasOwn(settings, "user_in_watermark_groups")) {
-              if (!settings.user_in_watermark_groups) {
+            if (!profile) {
+              if (!settings.watermark_default_enabled) {
                 return null;
               }
-            }
-            // DEPRECATED: Once user_in_ is fully supported, remove this.
-            else if (settings.watermark_groups?.length) {
-              const requiredGroups = settings.watermark_groups
-                .split("|")
-                .filter(Boolean)
-                .map((group) => Number(group));
 
               if (
-                !requiredGroups.includes(AUTO_GROUPS.everyone.id) &&
-                !this.currentUser.groups
-                  .map((group) => group.id)
-                  .some((group) => requiredGroups.includes(group))
+                settings.watermark_categories &&
+                !settings.watermark_categories
+                  .split("|")
+                  .map((c) => Number(c))
+                  .includes(composerModel.categoryId)
               ) {
                 return null;
+              }
+
+              if (Object.hasOwn(settings, "user_in_watermark_groups")) {
+                if (!settings.user_in_watermark_groups) {
+                  return null;
+                }
+              }
+              // DEPRECATED: Once user_in_ is fully supported, remove this.
+              else if (settings.watermark_groups?.length) {
+                const requiredGroups = settings.watermark_groups
+                  .split("|")
+                  .filter(Boolean)
+                  .map((group) => Number(group));
+
+                if (
+                  !requiredGroups.includes(AUTO_GROUPS.everyone.id) &&
+                  !this.currentUser.groups
+                    .map((group) => group.id)
+                    .some((group) => requiredGroups.includes(group))
+                ) {
+                  return null;
+                }
               }
             }
 
@@ -137,6 +328,7 @@ class WatermarkInit {
 
             const watermark = new Watermark(owner, file.data, {
               topic: topicData,
+              overwriteOptions,
             });
 
             const imageData = await watermark.process();

@@ -47,16 +47,37 @@
     }
   }
 
-  .watermark-settings-search {
-    margin-bottom: var(--space-2);
+  .theme.settings {
+    display: flex;
+    flex-direction: column;
   }
 
-  .theme.settings[data-searching] [data-setting]:not(.--search-match) {
-    display: none;
+  .theme.settings [data-setting="watermark_profiles"] {
+    order: -2;
+  }
+
+  .theme.settings [data-setting="watermark_default_enabled"] {
+    order: -1;
+  }
+
+  // Collapse the default block until the default watermark is switched on.
+  .theme.settings:has(
+      [data-setting="watermark_default_enabled"]
+        [role="switch"][aria-checked="false"]
+    ) {
+    .watermark-settings-tabs-mount,
+    [data-setting]:not(
+      [data-setting="watermark_profiles"],
+      [data-setting="watermark_default_enabled"]
+    ) {
+      display: none;
+    }
   }
 
   .theme.settings[data-active-tab="content"]
     [data-setting]:not(
+      [data-setting="watermark_profiles"],
+      [data-setting="watermark_default_enabled"],
       [data-setting="watermark_qrcode_enabled"],
       [data-setting="watermark_image"],
       [data-setting="watermark_qrcode_text"],
@@ -67,6 +88,8 @@
     ),
   .theme.settings[data-active-tab="appearance"]
     [data-setting]:not(
+      [data-setting="watermark_profiles"],
+      [data-setting="watermark_default_enabled"],
       [data-setting="watermark_opacity"],
       [data-setting="watermark_blend_mode"],
       [data-setting="watermark_size_mode"],
@@ -76,6 +99,8 @@
     ),
   .theme.settings[data-active-tab="placement"]
     [data-setting]:not(
+      [data-setting="watermark_profiles"],
+      [data-setting="watermark_default_enabled"],
       [data-setting="watermark_position"],
       [data-setting="watermark_margin_x"],
       [data-setting="watermark_margin_y"],
@@ -87,6 +112,8 @@
     ),
   .theme.settings[data-active-tab="rules"]
     [data-setting]:not(
+      [data-setting="watermark_profiles"],
+      [data-setting="watermark_default_enabled"],
       [data-setting="watermark_categories"],
       [data-setting="watermark_groups"],
       [data-setting="watermark_skip_small_images"],

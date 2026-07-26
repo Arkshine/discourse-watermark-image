@@ -18,6 +18,12 @@
     font-weight: normal;
   }
 
+  .watermark-switch {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
   .watermark-slider {
     display: flex;
     align-items: center;

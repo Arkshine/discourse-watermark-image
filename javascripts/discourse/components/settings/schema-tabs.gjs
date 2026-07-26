@@ -4,22 +4,21 @@ import { concat, fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { modifier } from "ember-modifier";
-import DButton from "discourse/components/d-button";
 import HorizontalOverflowNav from "discourse/components/horizontal-overflow-nav";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 
-export default class WatermarkSettingsTabs extends Component {
+export default class SchemaTabs extends Component {
   @tracked activeTab;
 
   syncActiveTab = modifier(() => {
-    const { section } = this.args;
-    if (!section) {
+    const { container } = this.args;
+    if (!container) {
       return;
     }
 
-    section.dataset.activeTab = this.activeTab;
-    return () => delete section.dataset.activeTab;
+    container.dataset.activeTab = this.activeTab;
+    return () => delete container.dataset.activeTab;
   });
 
   constructor() {
@@ -47,16 +46,6 @@ export default class WatermarkSettingsTabs extends Component {
           >{{i18n (themePrefix (concat "settings_ui.tabs." tab.id))}}</button>
         {{/each}}
       </HorizontalOverflowNav>
-      <DButton
-        class="watermark-tabs__preview-toggle btn-flat"
-        @icon={{if @previewShown "eye-slash" "eye"}}
-        @translatedTitle={{i18n
-          (themePrefix
-            (concat "preview.buttons." (if @previewShown "hide" "show"))
-          )
-        }}
-        @action={{@onTogglePreview}}
-      />
     </div>
   </template>
 }
