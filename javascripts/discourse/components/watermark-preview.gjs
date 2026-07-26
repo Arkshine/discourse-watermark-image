@@ -3,6 +3,7 @@ import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import { getOwner } from "@ember/owner";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
+import didUpdate from "@ember/render-modifiers/modifiers/did-update";
 import { debounce } from "@ember/runloop";
 import { service } from "@ember/service";
 import { trustHTML } from "@ember/template";
@@ -25,7 +26,8 @@ const SPINNER_DELAY = 500;
 
 const SETTING_CONTAINER_SELECTOR = ".theme.settings > [data-setting]";
 const SETTING_INPUT_SELECTOR = `${SETTING_CONTAINER_SELECTOR} input:not([type="file"])`;
-const SETTINGS_SECTION_SELECTOR = '.theme.settings [data-setting^="watermark_"]';
+const SETTINGS_SECTION_SELECTOR =
+  '.theme.settings [data-setting^="watermark_"]';
 
 const CONTAINER_SELECTOR = ".watermark-preview__container";
 const IMAGE_SELECTOR = ".watermark-preview__resizable";
@@ -58,6 +60,10 @@ export default class WatermarkPreview extends Component {
   previewObjectURL = null;
 
   registerEvents = modifier(() => {
+    if (!this.args.theme) {
+      return;
+    }
+
     const onSettingInput = (event) => {
       if (event.target?.matches?.(SETTING_INPUT_SELECTOR)) {
         this.onSettingChange();
@@ -107,9 +113,11 @@ export default class WatermarkPreview extends Component {
 
   positionDock = modifier((element) => {
     const column = document.querySelector(".admin-customize-themes-show");
-    const section = document
-      .querySelector(SETTINGS_SECTION_SELECTOR)
-      ?.closest(".theme.settings");
+    const section = this.args.anchorSelector
+      ? document.querySelector(this.args.anchorSelector)
+      : document
+          .querySelector(SETTINGS_SECTION_SELECTOR)
+          ?.closest(".theme.settings");
 
     if (!column || !section) {
       return;
@@ -182,9 +190,13 @@ export default class WatermarkPreview extends Component {
     );
   }
 
+  get resolvedSettings() {
+    return this.args.settings ?? this.settingsValues();
+  }
+
   @action
   async applyWatermark(element, options = {}) {
-    const settingsValues = this.settingsValues();
+    const settingsValues = this.resolvedSettings;
     const emptyWatermark =
       !settingsValues.watermark_image &&
       !settingsValues.watermark_qrcode_enabled;
@@ -289,6 +301,13 @@ export default class WatermarkPreview extends Component {
   @action
   refreshImage() {
     this.applyWatermark(this.imageElement, { refreshImage: true });
+  }
+
+  @action
+  reapply() {
+    if (this.imageElement) {
+      this.applyWatermark(this.imageElement);
+    }
   }
 
   @action
@@ -418,6 +437,7 @@ export default class WatermarkPreview extends Component {
         class="watermark-preview__resizable"
         style={{this.imageStyle}}
         {{didInsert this.applyWatermark}}
+        {{didUpdate this.reapply @settings}}
       >
         {{~! no whitespace ~}}
         <img src={{this.imageSourceURL}} />
