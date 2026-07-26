@@ -344,6 +344,8 @@ class WatermarkInit {
 
             return Promise.resolve(watermarkFile);
           },
+          allowUploadOnError: settings.watermark_allow_upload_on_error,
+          errorMessage: i18n(themePrefix("composer.errors.watermark_failed")),
           runParallel: !isMobileDevice,
         };
       }

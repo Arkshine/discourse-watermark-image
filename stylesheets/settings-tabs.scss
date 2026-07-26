@@ -118,7 +118,8 @@
       [data-setting="watermark_groups"],
       [data-setting="watermark_skip_small_images"],
       [data-setting="watermark_min_image_dimensions"],
-      [data-setting="watermark_allow_non_supported_uploads"]
+      [data-setting="watermark_allow_non_supported_uploads"],
+      [data-setting="watermark_allow_upload_on_error"]
     ) {
     display: none;
   }

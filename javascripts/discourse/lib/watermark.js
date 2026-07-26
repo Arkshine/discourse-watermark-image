@@ -12,6 +12,8 @@ const workerQRCodeUrl = settings.theme_uploads_local.worker_qrcode;
 const workerQRCodeGenUrl = settings.theme_uploads_local.worker_qrcodegen;
 const workerQRCodeGenWasmUrl = settings.theme_uploads.worker_qrcodegen_wasm;
 
+const WORKER_TIMEOUT_MS = 60000;
+
 export const WATERMARK_ALLOWED_EXTS = new Set([
   "png",
   "jpg",
@@ -32,8 +34,6 @@ export function isImageAllowed(path) {
 }
 
 class WorkerManager {
-  @service siteSettings;
-
   constructor() {
     this.workers = {};
     this.messageSeq = 0;
@@ -49,11 +49,30 @@ class WorkerManager {
       }
 
       this.workers[type].onmessage = (event) => {
-        const { incomingSeq, data } = event.data;
+        const { incomingSeq, data, error } = event.data;
+        const resolver = this.resolvers[incomingSeq];
 
-        if (this.resolvers[incomingSeq]) {
-          this.resolvers[incomingSeq](data);
-          delete this.resolvers[incomingSeq];
+        if (!resolver) {
+          return;
+        }
+
+        delete this.resolvers[incomingSeq];
+
+        if (error) {
+          resolver.reject(new Error(error));
+        } else {
+          resolver.resolve(data);
+        }
+      };
+
+      this.workers[type].onerror = (event) => {
+        const message = event.message || `Watermark '${type}' worker crashed`;
+
+        for (const [seq, resolver] of Object.entries(this.resolvers)) {
+          if (resolver.type === type) {
+            delete this.resolvers[seq];
+            resolver.reject(new Error(message));
+          }
         }
       };
     }
@@ -67,8 +86,25 @@ class WorkerManager {
 
     worker.postMessage({ ...message, seq }, transferables);
 
-    return new Promise((resolve) => {
-      this.resolvers[seq] = resolve;
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (this.resolvers[seq]) {
+          delete this.resolvers[seq];
+          reject(new Error(`Watermark '${type}' worker timed out`));
+        }
+      }, WORKER_TIMEOUT_MS);
+
+      this.resolvers[seq] = {
+        type,
+        resolve: (data) => {
+          clearTimeout(timeout);
+          resolve(data);
+        },
+        reject: (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        },
+      };
     });
   }
 

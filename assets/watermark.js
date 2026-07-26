@@ -434,7 +434,7 @@ async function applyWatermark(event) {
 
     postMessage({
       incomingSeq: seq,
-      uploadImageData: null,
+      error: error.toString(),
     });
 
     return;

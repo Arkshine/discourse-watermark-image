@@ -145,6 +145,7 @@ en:
       watermark_skip_small_images: Skip watermarking if image is below minimum dimensions.
       watermark_min_image_dimensions: Minimum dimensions required to apply watermark (width x height).
       watermark_allow_non_supported_uploads: Allow image uploads to continue even when the format is not supported by the watermark library.
+      watermark_allow_upload_on_error: Allow image uploads to continue when watermarking fails unexpectedly. When disabled, the upload is blocked and the error is shown to the user, enforcing that every image is watermarked.
   preview:
     title: Preview
     buttons:
@@ -155,6 +156,7 @@ en:
   composer:
     errors:
       upload_not_authorized: "Sorry, the file you are trying to upload doesn't support watermarking (authorized extensions: %{authorized_extensions})."
+      watermark_failed: "Sorry, this image could not be watermarked and the upload was blocked. <br>Please try again, and contact the site administrator if the problem persists."
   settings_ui:
     tabs_label: Watermark settings
     tabs:

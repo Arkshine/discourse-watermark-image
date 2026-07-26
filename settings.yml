@@ -239,3 +239,7 @@ watermark_min_image_dimensions:
 watermark_allow_non_supported_uploads:
   type: bool
   default: false
+
+watermark_allow_upload_on_error:
+  type: bool
+  default: true
