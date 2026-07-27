@@ -4,7 +4,7 @@ import { action } from "@ember/object";
 import { getOwner } from "@ember/owner";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import didUpdate from "@ember/render-modifiers/modifiers/did-update";
-import { debounce } from "@ember/runloop";
+import { debounce, next } from "@ember/runloop";
 import { service } from "@ember/service";
 import { trustHTML } from "@ember/template";
 import { modifier } from "ember-modifier";
@@ -14,14 +14,14 @@ import { bind } from "discourse/lib/decorators";
 import { withPluginApi } from "discourse/lib/plugin-api";
 import dIcon from "discourse/ui-kit/helpers/d-icon";
 import { i18n } from "discourse-i18n";
-import { imageDataToFile, imageURLToFile } from "../lib/media-watermark-utils";
+import { imageURLToFile } from "../lib/media-watermark-utils";
 import Watermark, { WATERMARK_ALLOWED_EXTS_STRING } from "../lib/watermark";
 import draggablePanel from "../modifiers/drag-panel";
 
 const PREVIEW_IMAGE_WIDTH = "300px";
 const PREVIEW_IMAGE_HEIGHT = "200px";
-const IMAGE_BANK_URL = "https://picsum.photos/600/400";
-const UPDATE_DEBOUNCE = 25;
+const IMAGE_BANK_URL = "https://picsum.photos/1200/800";
+const UPDATE_DEBOUNCE = 10;
 const SPINNER_DELAY = 500;
 
 const SETTING_CONTAINER_SELECTOR = ".theme.settings > [data-setting]";
@@ -57,7 +57,6 @@ export default class WatermarkPreview extends Component {
   applyingWatermark = false;
   previousSettingsValues = {};
   userMovedPreview = false;
-  previewObjectURL = null;
 
   registerEvents = modifier(() => {
     if (!this.args.theme) {
@@ -80,7 +79,7 @@ export default class WatermarkPreview extends Component {
         element.closest("button")?.classList.contains(classname);
 
       if (buttonAllowed(target, "undo") || buttonAllowed(target, "cancel")) {
-        this.onSettingChange();
+        next(this, this.onSettingChange);
       }
     };
 
@@ -172,9 +171,6 @@ export default class WatermarkPreview extends Component {
   willDestroy() {
     super.willDestroy(...arguments);
 
-    if (this.previewObjectURL) {
-      URL.revokeObjectURL(this.previewObjectURL);
-    }
     if (this.imageSourceURL) {
       URL.revokeObjectURL(this.imageSourceURL);
     }
@@ -225,6 +221,7 @@ export default class WatermarkPreview extends Component {
       file = await this.initImage();
 
       if (emptyWatermark) {
+        await this.paintFile(element, file);
         this.imageLoading = false;
         this.applyingWatermark = false;
         return;
@@ -244,20 +241,40 @@ export default class WatermarkPreview extends Component {
       return;
     }
 
-    const watermarkFile = await imageDataToFile(imageData, {
-      fileName: file.name,
-      fileType: file.type,
-    });
+    this.paintImageData(element, imageData);
 
     this.applyingWatermark = false;
     this.imageLoading = false;
     uploadButton?.removeAttribute("disabled");
+  }
 
-    if (this.previewObjectURL) {
-      URL.revokeObjectURL(this.previewObjectURL);
+  canvasFor(element) {
+    return element.querySelector(".watermark-preview__canvas");
+  }
+
+  paintImageData(element, imageData) {
+    const canvas = this.canvasFor(element);
+
+    if (
+      canvas.width !== imageData.width ||
+      canvas.height !== imageData.height
+    ) {
+      canvas.width = imageData.width;
+      canvas.height = imageData.height;
     }
-    this.previewObjectURL = URL.createObjectURL(watermarkFile);
-    element.firstChild.src = this.previewObjectURL;
+
+    canvas.getContext("2d").putImageData(imageData, 0, 0);
+  }
+
+  // Used when there is nothing to watermark: show the source as-is.
+  async paintFile(element, file) {
+    const bitmap = await createImageBitmap(file);
+    const canvas = this.canvasFor(element);
+
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0);
+    bitmap.close();
   }
 
   @action
@@ -440,7 +457,7 @@ export default class WatermarkPreview extends Component {
         {{didUpdate this.reapply @settings}}
       >
         {{~! no whitespace ~}}
-        <img src={{this.imageSourceURL}} />
+        <canvas class="watermark-preview__canvas"></canvas>
         {{~! no whitespace ~}}
       </div>
     </div>
