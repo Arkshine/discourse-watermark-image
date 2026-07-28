@@ -19,6 +19,7 @@ import Watermark, { WATERMARK_ALLOWED_EXTS_STRING } from "../lib/watermark";
 import draggablePanel from "../modifiers/drag-panel";
 
 const PREVIEW_IMAGE_WIDTH = "300px";
+const DEFAULT_PANEL_WIDTH = parseFloat(PREVIEW_IMAGE_WIDTH);
 const PREVIEW_IMAGE_HEIGHT = "200px";
 const IMAGE_BANK_URL = "https://picsum.photos/1200/800";
 const UPDATE_DEBOUNCE = 10;
@@ -122,13 +123,31 @@ export default class WatermarkPreview extends Component {
       return;
     }
 
+    const frameWidth = () => {
+      const resizable = element.querySelector(IMAGE_SELECTOR);
+      return resizable ? element.offsetWidth - resizable.offsetWidth : 0;
+    };
+
+    const intendedWidth = () => {
+      const resizable = element.querySelector(IMAGE_SELECTOR);
+
+      if (!resizable) {
+        return element.offsetWidth;
+      }
+
+      const inline = parseFloat(resizable.style.width);
+      const content = Number.isFinite(inline) ? inline : resizable.offsetWidth;
+
+      return content + (element.offsetWidth - resizable.offsetWidth);
+    };
+
     const reposition = () => {
       const columnRect = column.getBoundingClientRect();
-      const panelWidth = element.offsetWidth;
+      const room = window.innerWidth - columnRect.right;
 
+      // Measured against the default width so resizing by hand never docks it.
       const fits =
-        window.innerWidth - columnRect.right >=
-        panelWidth + DOCK_GAP + DOCK_MARGIN;
+        room >= DEFAULT_PANEL_WIDTH + frameWidth() + DOCK_GAP + DOCK_MARGIN;
 
       if (!fits) {
         element.classList.add("--compact");
@@ -154,7 +173,12 @@ export default class WatermarkPreview extends Component {
         Math.min(centered, rect.bottom - panelHeight)
       );
 
-      element.style.left = `${columnRect.right + DOCK_GAP}px`;
+      const left = Math.min(
+        columnRect.right + DOCK_GAP,
+        window.innerWidth - intendedWidth() - DOCK_MARGIN
+      );
+
+      element.style.left = `${Math.max(DOCK_MARGIN, left)}px`;
       element.style.top = `${top}px`;
     };
 
