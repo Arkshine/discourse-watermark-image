@@ -1,3 +1,5 @@
+import { headerOffset } from "discourse/lib/offset-calculator";
+
 const DRAGGING_CLASS = "is-dragging";
 
 export function pointerPosition(event) {
@@ -54,11 +56,12 @@ export class DragPanel {
   }
 
   updatePosition(pointerX, pointerY) {
+    const minY = headerOffset();
     const maxX = window.innerWidth - this.panel.offsetWidth;
-    const maxY = window.innerHeight - this.panel.offsetHeight;
+    const maxY = Math.max(minY, window.innerHeight - this.panel.offsetHeight);
 
     const targetX = Math.max(0, Math.min(pointerX - this.offsetX, maxX));
-    const targetY = Math.max(0, Math.min(pointerY - this.offsetY, maxY));
+    const targetY = Math.max(minY, Math.min(pointerY - this.offsetY, maxY));
 
     const lerp = 0.3;
     this.currentX += (targetX - this.currentX) * lerp;
