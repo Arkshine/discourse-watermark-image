@@ -5,6 +5,9 @@
       top: 20vh;
       left: 70vw;
       z-index: 100;
+      resize: horizontal;
+      min-width: 300px;
+      max-width: 100vw;
       border: 1px solid var(--primary-low-mid);
       border-radius: var(--d-input-border-radius);
       background: var(--secondary);
@@ -68,14 +71,57 @@
       }
     }
 
-    &__resizable {
-      display: block;
-      position: relative;
-      max-width: 100%;
-      resize: horizontal;
-      overflow: hidden;
+    &__footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-2);
+      flex-wrap: wrap;
 
-      img {
+      padding: var(--space-1) var(--space-4) var(--space-1) var(--space-2);
+      border-top: 1px solid var(--primary-low);
+      background: var(--primary-very-low);
+      font-size: var(--font-down-2);
+      color: var(--primary-medium);
+    }
+
+    &__sizes {
+      display: flex;
+      gap: var(--space-1);
+      flex-wrap: wrap;
+    }
+
+    &__size {
+      padding: 0 var(--space-1);
+      border: none;
+      border-radius: var(--d-input-border-radius);
+      background: none;
+      color: var(--primary-medium);
+      font-size: var(--font-down-2);
+      cursor: pointer;
+
+      &:hover {
+        color: var(--primary);
+      }
+
+      &.--active {
+        background: var(--primary-low);
+        color: var(--primary);
+      }
+    }
+
+    &__summary {
+      font-variant-numeric: tabular-nums;
+    }
+
+    &__image {
+      display: block;
+      min-height: 200px;
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: auto;
         user-select: none;
         pointer-events: none;
       }
@@ -86,12 +132,9 @@
       left: auto;
       right: var(--space-3);
       bottom: var(--space-3);
-      width: min(340px, calc(100vw - 2 * var(--space-3)));
-
-      .watermark-preview__resizable {
-        width: 100% !important;
-        resize: none;
-      }
+      width: min(340px, calc(100vw - 2 * var(--space-3))) !important;
+      min-width: 0;
+      resize: none;
     }
   }
 }

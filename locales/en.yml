@@ -150,7 +150,8 @@ en:
     title: Preview
     buttons:
       refresh: Change image
-      close: Close preview
+      close: Close
+      expand: Open full size preview
       show: Show preview
       hide: Hide preview
   composer:

@@ -1,4 +1,4 @@
-import { helperContext } from "discourse-common/lib/helpers";
+import { helperContext } from "discourse/lib/helpers";
 
 // Similar function as in core app/lib/media-optimization-utils.js
 // Chrome and Firefox use a native method to do Image -> Bitmap Array (it happens of the main thread!)
@@ -110,7 +110,16 @@ async function convertCanvasToBlob(canvas, fileType) {
  */
 async function imageURLToFile(url, options = {}) {
   const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Could not fetch image: ${response.status} ${url}`);
+  }
+
   const blob = await response.blob();
+
+  if (blob.type && !blob.type.startsWith("image/")) {
+    throw new Error(`Not an image: ${blob.type || "unknown type"} from ${url}`);
+  }
   const filename = url.substring(url.lastIndexOf("/") + 1);
   const file = new File([blob], filename, {
     type: blob.type,
