@@ -100,11 +100,11 @@ watermark_qrcode_text:
 watermark_qrcode_color:
   type: string
   list_type: color
-  default: "var(--primary)"
+  default: "#000000"
 
 watermark_qrcode_background_color:
   type: string
-  default: "var(--secondary)"
+  default: "#ffffff"
 
 watermark_qrcode_quiet_zone:
   type: integer
