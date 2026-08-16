@@ -1,83 +1,252 @@
 import Component from "@glimmer/component";
+import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
-import { trustHTML } from "@ember/template";
 import { resolveColor } from "discourse/lib/color-transformations";
+import dConcatClass from "discourse/ui-kit/helpers/d-concat-class";
 import dIcon from "discourse/ui-kit/helpers/d-icon";
 import { i18n } from "discourse-i18n";
+import WatermarkChoiceSegmented from "./choice-segmented";
+import WatermarkSlider from "./slider";
+
+const GRADIENT_TYPES = {
+  setting: "gradient_type",
+  validValues: ["linear", "radial"],
+};
+
+const BLEND_MODES = {
+  setting: "gradient_blend",
+  validValues: ["smooth", "random"],
+};
+
+const GRADIENT_ANGLE = {
+  setting: "gradient_angle",
+  min: 0,
+  max: 360,
+  step: 15,
+};
+
+const SECOND_STOP = "#ffffff";
+const MAX_STOPS = 6;
 
 export default class WatermarkColorField extends Component {
-  get swatchStyle() {
-    return trustHTML(`background-color: ${this.args.value || "transparent"};`);
+  gradientTypes = GRADIENT_TYPES;
+  gradientAngle = GRADIENT_ANGLE;
+  blendModes = BLEND_MODES;
+
+  get gradient() {
+    const value = this.args.value;
+    return value && typeof value === "object" ? value : null;
   }
 
-  get pickerValue() {
-    const hex = this.#resolvedHex(this.args.value);
-    return hex ? `#${hex}` : "#000000";
+  get allowGradient() {
+    return Boolean(this.args.setting?.allowGradient);
   }
 
-  get iconClass() {
-    const hex = this.#resolvedHex(this.args.value);
-    if (!hex) {
-      return "--is-light";
-    }
+  get stops() {
+    return this.gradient?.stops ?? [this.args.value || ""];
+  }
 
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    return (r * 0.299 + g * 0.587 + b * 0.114) / 255 > 0.5
-      ? "--is-light"
-      : "--is-dark";
+  get canAddStop() {
+    return this.allowGradient && this.stops.length < MAX_STOPS;
+  }
+
+  get swatches() {
+    const placeholder = this.args.setting?.placeholder;
+
+    return this.stops.map((stop, index) => {
+      const raw = stop || (index === 0 ? placeholder : "") || "";
+      const effective =
+        raw && typeof raw === "object" ? (raw.stops?.[0] ?? "") : raw;
+      const hex = resolvedHex(effective);
+
+      return {
+        index,
+        value: stop,
+        text: stop.replace(/^#/, ""),
+        inherited: !stop && index === 0 && Boolean(placeholder),
+        picker: hex ? `#${hex}` : "#000000",
+      };
+    });
+  }
+
+  get blend() {
+    return this.gradient?.blend ?? "smooth";
+  }
+
+  get isRandom() {
+    return this.blend === "random";
+  }
+
+  get showAngle() {
+    return !this.isRandom && this.gradient?.type === "linear";
+  }
+
+  get showGradient() {
+    return Boolean(this.gradient) && !this.args.setting?.stopsOnly;
   }
 
   @action
-  update(event) {
-    this.args.changeValueCallback(event.target.value);
+  updateHex(index, event) {
+    const digits = event.target.value.replace(/^#/, "");
+    this.updateStop(index, { target: { value: digits && `#${digits}` } });
   }
 
-  #resolvedHex(value) {
-    if (!value) {
-      return null;
+  @action
+  updateStop(index, event) {
+    const color = event.target.value;
+
+    if (!this.gradient) {
+      this.args.changeValueCallback(color);
+      return;
     }
 
-    const variable = value.match(/^var\((--[^)]+)\)$|^(--[^)]+)$/);
-    if (variable) {
-      value = getComputedStyle(document.documentElement)
-        .getPropertyValue(variable[1] || variable[2])
-        .trim();
+    const stops = [...this.gradient.stops];
+    stops[index] = color;
+    this.#emit({ stops });
+  }
+
+  @action
+  addStop() {
+    if (!this.gradient) {
+      this.args.changeValueCallback({
+        type: "linear",
+        angle: 45,
+        stops: [this.args.value || "#000000", SECOND_STOP],
+      });
+      return;
+    }
+    const stops = this.gradient.stops;
+    this.#emit({ stops: [...stops, stops[stops.length - 1] ?? SECOND_STOP] });
+  }
+
+  @action
+  removeStop() {
+    const stops = this.gradient?.stops ?? [];
+
+    if (stops.length <= 2) {
+      this.args.changeValueCallback(stops[0] ?? "");
+      return;
     }
 
-    const resolved = resolveColor(value);
-    return resolved?.startsWith("#") ? resolved.slice(1) : null;
+    this.#emit({ stops: stops.slice(0, -1) });
+  }
+
+  @action
+  setType(type) {
+    this.#emit({ type });
+  }
+
+  @action
+  setBlend(blend) {
+    this.#emit({ blend });
+  }
+
+  @action
+  setAngle(angle) {
+    this.#emit({ angle: Number(angle) });
+  }
+
+  #emit(changes) {
+    this.args.changeValueCallback({ ...this.gradient, ...changes });
   }
 
   <template>
     <div class="watermark-color-field" ...attributes>
-      <span class="watermark-color-field__swatch {{this.iconClass}}">
-        <span
-          class="watermark-color-field__fill"
-          style={{this.swatchStyle}}
-        ></span>
-        <input
-          type="color"
-          class="watermark-color-field__picker"
-          value={{this.pickerValue}}
-          disabled={{@disabled}}
-          aria-label={{i18n (themePrefix "settings_ui.color.pick")}}
-          {{on "input" this.update}}
-        />
-        {{dIcon "eye-dropper"}}
-      </span>
-      <input
-        type="text"
-        class="watermark-color-field__text"
-        value={{@value}}
-        disabled={{@disabled}}
-        spellcheck="false"
-        autocomplete="off"
-        aria-label={{i18n (themePrefix "settings_ui.color.value")}}
-        {{on "input" this.update}}
-      />
+      <div class="watermark-color-field__stops">
+        {{#each this.swatches key="index" as |swatch|}}
+          <span
+            class={{dConcatClass
+              "watermark-color-field__stop"
+              "form-kit__control-input"
+              (if swatch.inherited "--inherited")
+            }}
+          >
+            <input
+              type="color"
+              class="watermark-color-field__picker"
+              value={{swatch.picker}}
+              disabled={{@disabled}}
+              aria-label={{i18n (themePrefix "settings_ui.color.pick")}}
+              {{on "input" (fn this.updateStop swatch.index)}}
+              {{on "change" (fn this.updateStop swatch.index)}}
+            />
+            <span class="watermark-color-field__hex">
+              {{dIcon "hashtag" class="watermark-color-field__hash"}}
+              <input
+                type="text"
+                class="watermark-color-field__text"
+                value={{swatch.text}}
+                disabled={{@disabled}}
+                spellcheck="false"
+                autocomplete="off"
+                aria-label={{i18n (themePrefix "settings_ui.color.value")}}
+                maxlength="6"
+                {{on "input" (fn this.updateHex swatch.index)}}
+              />
+            </span>
+          </span>
+        {{/each}}
+
+        {{#if this.canAddStop}}
+          <button
+            type="button"
+            class="watermark-color-field__stop-action"
+            title={{i18n (themePrefix "settings_ui.color.add_stop")}}
+            disabled={{@disabled}}
+            {{on "click" this.addStop}}
+          >{{dIcon "plus"}}</button>
+        {{/if}}
+
+        {{#if this.gradient}}
+          <button
+            type="button"
+            class="watermark-color-field__stop-action"
+            title={{i18n (themePrefix "settings_ui.color.remove_stop")}}
+            disabled={{@disabled}}
+            {{on "click" this.removeStop}}
+          >{{dIcon "xmark"}}</button>
+        {{/if}}
+      </div>
+
+      {{#if this.showGradient}}
+        <div class="watermark-color-field__gradient">
+          <WatermarkChoiceSegmented
+            @value={{this.blend}}
+            @setting={{this.blendModes}}
+            @disabled={{@disabled}}
+            @changeValueCallback={{this.setBlend}}
+          />
+
+          {{#unless this.isRandom}}
+            <WatermarkChoiceSegmented
+              @value={{this.gradient.type}}
+              @setting={{this.gradientTypes}}
+              @disabled={{@disabled}}
+              @changeValueCallback={{this.setType}}
+            />
+          {{/unless}}
+
+          {{#if this.showAngle}}
+            <WatermarkSlider
+              @value={{this.gradient.angle}}
+              @setting={{this.gradientAngle}}
+              @disabled={{@disabled}}
+              @changeValueCallback={{this.setAngle}}
+            />
+          {{/if}}
+        </div>
+      {{/if}}
     </div>
   </template>
+}
+
+function resolvedHex(value) {
+  if (!value) {
+    return null;
+  }
+
+  const resolved = resolveColor(value);
+
+  return resolved?.startsWith("#") ? resolved.slice(1) : null;
 }

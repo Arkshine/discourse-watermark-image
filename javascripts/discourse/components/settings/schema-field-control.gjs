@@ -8,6 +8,8 @@ import WatermarkChoiceSegmented from "./types/choice-segmented";
 import WatermarkColorField from "./types/color-field";
 import WatermarkPatternPicker from "./types/pattern-picker";
 import WatermarkPositionPicker from "./types/position-picker";
+import WatermarkQrLogo from "./types/qr-logo";
+import WatermarkQrStyle from "./types/qr-style";
 import WatermarkRotationDial from "./types/rotation-dial";
 import WatermarkSlider from "./types/slider";
 import WatermarkSourceToggle from "./types/source-toggle";
@@ -21,6 +23,8 @@ export const SCHEMA_CONTROLS = {
   qrcode_background_color: WatermarkColorField,
   qrcode_quiet_zone: WatermarkStepper,
   qrcode_error_correction: WatermarkChoiceSegmented,
+  qrcode_style_config: WatermarkQrStyle,
+  qrcode_logo_config: WatermarkQrLogo,
   position: WatermarkPositionPicker,
   margin_x: WatermarkStepper,
   margin_y: WatermarkStepper,

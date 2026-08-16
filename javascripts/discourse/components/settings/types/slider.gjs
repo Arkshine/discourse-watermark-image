@@ -11,6 +11,10 @@ export default class WatermarkSlider extends Component {
     return this.args.setting.max ?? 100;
   }
 
+  get step() {
+    return this.args.setting.step ?? 1;
+  }
+
   @action
   updateValue(event) {
     this.args.changeValueCallback(event.target.value);
@@ -22,6 +26,7 @@ export default class WatermarkSlider extends Component {
         type="range"
         min={{this.min}}
         max={{this.max}}
+        step={{this.step}}
         value={{@value}}
         disabled={{@disabled}}
         {{on "input" this.updateValue}}

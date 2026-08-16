@@ -16,6 +16,7 @@ export default class WatermarkChoiceSegmented extends Component {
         value,
         label: String(name).replaceAll("_", " "),
         checked: this.args.value === value,
+        disabled: this.args.disabled || setting.disabledValues?.includes(value),
       };
     });
   }
@@ -34,12 +35,12 @@ export default class WatermarkChoiceSegmented extends Component {
             name={{@setting.setting}}
             value={{segment.value}}
             checked={{segment.checked}}
-            disabled={{@disabled}}
+            disabled={{segment.disabled}}
             {{on "change" this.select}}
           />
-          <span
-            class="watermark-choice-segmented__label"
-          >{{segment.label}}</span>
+          <span class="watermark-choice-segmented__label">
+            {{segment.label}}
+          </span>
         </label>
       {{/each}}
     </div>

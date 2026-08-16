@@ -13,10 +13,33 @@ export default class WatermarkStepper extends Component {
     return this.isFloat ? 0.1 : 1;
   }
 
+  get isEmpty() {
+    return (
+      Boolean(this.args.setting?.allowEmpty) &&
+      (this.args.value === "" || this.args.value == null)
+    );
+  }
+
   get value() {
+    if (this.isEmpty) {
+      return "";
+    }
+
     const parsed = this.isFloat
       ? parseFloat(this.args.value)
       : parseInt(this.args.value, 10);
+
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  get stepBase() {
+    if (!this.isEmpty) {
+      return this.value;
+    }
+
+    const parsed = this.isFloat
+      ? parseFloat(this.args.setting?.placeholder)
+      : parseInt(this.args.setting?.placeholder, 10);
 
     return isNaN(parsed) ? 0 : parsed;
   }
@@ -41,13 +64,18 @@ export default class WatermarkStepper extends Component {
       .closest(".watermark-stepper")
       .querySelector("input");
 
-    input.value = this.#clamp(this.value + direction * amount);
+    input.value = this.#clamp(this.stepBase + direction * amount);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
   @action
   onInput(event) {
     const raw = event.target.value;
+    if (raw === "" && this.args.setting?.allowEmpty) {
+      this.args.changeValueCallback("");
+      return;
+    }
+
     if (raw === "" || raw.endsWith("-") || raw.endsWith(".")) {
       return;
     }
@@ -74,6 +102,7 @@ export default class WatermarkStepper extends Component {
         min={{@setting.min}}
         max={{@setting.max}}
         value={{this.value}}
+        placeholder={{@setting.placeholder}}
         disabled={{@disabled}}
         {{on "input" this.onInput}}
       />

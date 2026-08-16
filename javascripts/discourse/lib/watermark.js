@@ -1,18 +1,18 @@
 import { setOwner } from "@ember/owner";
 import { service } from "@ember/service";
+import { ajax } from "discourse/lib/ajax";
 import { resolveColor } from "discourse/lib/color-transformations";
 import { getAbsoluteURL } from "discourse/lib/get-url";
+import { convertIconClass } from "discourse/lib/icon-library";
 import { imageURLToFile } from "./media-watermark-utils";
-
-const workerWatermarkUrl = settings.theme_uploads_local.worker_watermark;
-const workerPhotonUrl = settings.theme_uploads_local.worker_photon;
-const workerPhotonWasmUrl = settings.theme_uploads.worker_photon_wasm;
-
-const workerQRCodeUrl = settings.theme_uploads_local.worker_qrcode;
-const workerQRCodeGenUrl = settings.theme_uploads_local.worker_qrcodegen;
-const workerQRCodeGenWasmUrl = settings.theme_uploads.worker_qrcodegen_wasm;
-
-const WORKER_TIMEOUT_MS = 60000;
+import {
+  paramsFor,
+  parseAxisConfig,
+  resolveAxisParams,
+  stringifyAxisConfig,
+} from "./qr-settings/axes";
+import { parseLogoConfig, stringifyLogoConfig } from "./qr-settings/logo";
+import { workerManager } from "./watermark/worker";
 
 export const WATERMARK_ALLOWED_EXTS = new Set([
   "png",
@@ -33,110 +33,38 @@ export function isImageAllowed(path) {
   return WATERMARK_ALLOWED_EXTS.has(ext);
 }
 
-class WorkerManager {
-  constructor() {
-    this.workers = {};
-    this.messageSeq = 0;
-    this.resolvers = {};
-  }
-
-  async initWorker(type, config) {
-    if (!this.workers[type]) {
-      this.workers[type] = new Worker(config.url);
-
-      if (config.init) {
-        await config.init(this.workers[type]);
-      }
-
-      this.workers[type].onmessage = (event) => {
-        const { incomingSeq, data, error } = event.data;
-        const resolver = this.resolvers[incomingSeq];
-
-        if (!resolver) {
-          return;
-        }
-
-        delete this.resolvers[incomingSeq];
-
-        if (error) {
-          resolver.reject(new Error(error));
-        } else {
-          resolver.resolve(data);
-        }
-      };
-
-      this.workers[type].onerror = (event) => {
-        const message = event.message || `Watermark '${type}' worker crashed`;
-
-        for (const [seq, resolver] of Object.entries(this.resolvers)) {
-          if (resolver.type === type) {
-            delete this.resolvers[seq];
-            resolver.reject(new Error(message));
-          }
-        }
-      };
-    }
-
-    return this.workers[type];
-  }
-
-  async sendMessage(type, message, transferables = []) {
-    const seq = this.messageSeq++;
-    const worker = await this.initWorker(type, this.getWorkerConfig(type));
-
-    worker.postMessage({ ...message, seq }, transferables);
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        if (this.resolvers[seq]) {
-          delete this.resolvers[seq];
-          reject(new Error(`Watermark '${type}' worker timed out`));
-        }
-      }, WORKER_TIMEOUT_MS);
-
-      this.resolvers[seq] = {
-        type,
-        resolve: (data) => {
-          clearTimeout(timeout);
-          resolve(data);
-        },
-        reject: (err) => {
-          clearTimeout(timeout);
-          reject(err);
-        },
-      };
-    });
-  }
-
-  getWorkerConfig(type) {
-    const configs = {
-      watermark: {
-        url: workerWatermarkUrl,
-        init: async (worker) => {
-          worker.postMessage({
-            action: "load",
-            url: workerPhotonUrl,
-            wasmUrl: workerPhotonWasmUrl,
-          });
-        },
-      },
-      qrcode: {
-        url: workerQRCodeUrl,
-        init: async (worker) => {
-          worker.postMessage({
-            action: "load",
-            url: workerQRCodeGenUrl,
-            wasmUrl: workerQRCodeGenWasmUrl,
-          });
-        },
-      },
-    };
-
-    return configs[type];
-  }
+export function absoluteUploadURL(value) {
+  return value.startsWith("http") ? value : getAbsoluteURL(value);
 }
 
-const workerManager = new WorkerManager();
+export async function resolveIconSVG(name) {
+  const id = convertIconClass(name);
+  let symbol = document.querySelector(`#svg-sprites symbol#${id}`);
+
+  if (!symbol) {
+    try {
+      const markup = await ajax(`/svg-sprite/search/${id}`);
+      symbol = new DOMParser()
+        .parseFromString(
+          `<svg xmlns="http://www.w3.org/2000/svg">${markup}</svg>`,
+          "image/svg+xml"
+        )
+        .querySelector("symbol");
+    } catch {
+      return null;
+    }
+  }
+
+  if (!symbol) {
+    return null;
+  }
+
+  return {
+    viewBox: symbol.getAttribute("viewBox") || "0 0 512 512",
+    content: symbol.innerHTML,
+  };
+}
+
 const watermarkFileCache = new Map();
 
 async function getWatermarkFile(url) {
@@ -170,28 +98,7 @@ export default class Watermark {
   }
 
   async process() {
-    let qrCodeData = null;
-
-    if (this.settings.qrcode_enabled) {
-      qrCodeData = await this.generateQRCode();
-
-      if (qrCodeData?.error) {
-        return null;
-      }
-    }
-
-    return this.applyWatermark(qrCodeData);
-  }
-
-  async generateQRCode() {
-    return workerManager.sendMessage("qrcode", {
-      action: "generate",
-      ...this.settings,
-    });
-  }
-
-  async applyWatermark(qrCodeData) {
-    const params = await this.workerData(qrCodeData);
+    const params = await this.workerData();
     const transferables = [params.upload.buffer];
 
     if (params.watermark.buffer) {
@@ -205,34 +112,32 @@ export default class Watermark {
     );
   }
 
-  async workerData(qrCodeData = null) {
+  async workerData() {
     const uploadBuffer = await this.file.arrayBuffer();
 
-    let watermarkData = {};
+    const watermarkSettings = this.settings;
+    let watermarkBuffer = null;
 
-    if (qrCodeData) {
-      watermarkData = {
-        buffer: qrCodeData.buffer,
-      };
-    } else {
-      const watermarkFile = await getWatermarkFile(this.abolsuteWatermarkURL);
-      watermarkData = {
-        buffer: await watermarkFile.arrayBuffer(),
-      };
+    if (!watermarkSettings.qrcode_enabled) {
+      const watermarkFile = await getWatermarkFile(
+        absoluteUploadURL(watermarkSettings.image)
+      );
+      watermarkBuffer = await watermarkFile.arrayBuffer();
     }
 
-    const data = {
+    watermarkSettings.buffer = watermarkBuffer;
+    const logo = parseLogoConfig(watermarkSettings.qrcode_logo_config);
+
+    if (logo.enabled && logo.source === "icon" && logo.icon) {
+      watermarkSettings.qrcode_logo_icon = await resolveIconSVG(logo.icon);
+    }
+
+    return {
       upload: {
         buffer: uploadBuffer,
       },
-      watermark: {
-        ...watermarkData,
-        ...this.settings,
-        isQRCode: !!qrCodeData,
-      },
+      watermark: watermarkSettings,
     };
-
-    return data;
   }
 
   get settings() {
@@ -265,19 +170,29 @@ export default class Watermark {
       );
     }
 
+    if (newSettings.qrcode_halftone_image) {
+      newSettings.qrcode_halftone_image_url = absoluteUploadURL(
+        newSettings.qrcode_halftone_image
+      );
+    }
+
+    if (newSettings.qrcode_logo_image) {
+      newSettings.qrcode_logo_image_url = absoluteUploadURL(
+        newSettings.qrcode_logo_image
+      );
+    }
+
     const processQRColor = (color, defaultColor) => {
-      if (!color) {
-        return defaultColor;
+      if (color && typeof color === "object") {
+        return {
+          ...color,
+          stops: (color.stops ?? []).map((stop) =>
+            processQRColor(stop, "#000000")
+          ),
+        };
       }
 
-      if (color.startsWith("var(--") || color.startsWith("--")) {
-        color = getComputedStyle(document.documentElement)
-          .getPropertyValue(color.replace(/var\((--.*?)\)/g, "$1"))
-          .trim();
-      }
-
-      // Full 6-digit hex — the QR worker rejects shorthand like `#222`.
-      return resolveColor(color) || defaultColor;
+      return (color && resolveColor(color)) || defaultColor;
     };
 
     newSettings.qrcode_color = processQRColor(
@@ -290,16 +205,54 @@ export default class Watermark {
       "#ffffff"
     );
 
+    const cfg = parseAxisConfig(newSettings.qrcode_style_config);
+    const resolved = resolveAxisParams(cfg, newSettings);
+
+    for (const [key, spec] of Object.entries(paramsFor(cfg))) {
+      if (resolved[key] === undefined) {
+        continue;
+      }
+
+      if (spec.type === "color") {
+        resolved[key] = processQRColor(
+          resolved[key],
+          key === "background" ? "#ffffff" : "#000000"
+        );
+      } else if (spec.type === "number") {
+        const value = Number(resolved[key]);
+        resolved[key] = Number.isFinite(value) ? value : (spec.default ?? 0);
+      }
+    }
+
+    newSettings.qrcode_backdrop = resolved.backdrop ?? "solid";
+    newSettings.qrcode_backdrop_shape = cfg.frame?.startsWith("circle")
+      ? "circle"
+      : cfg.frame === "hexagon"
+        ? "hexagon"
+        : cfg.frame === "rounded-border" || cfg.frame === "rounded-corners"
+          ? "rounded"
+          : "rect";
+    newSettings.qrcode_backdrop_strength = resolved.backdropStrength ?? 0.5;
+    newSettings.qrcode_backdrop_color =
+      typeof resolved.background === "string"
+        ? resolved.background
+        : (resolved.background?.stops?.[0] ?? "#ffffff");
+
+    newSettings.qrcode_style_config = stringifyAxisConfig({
+      ...cfg,
+      params: resolved,
+    });
+
+    const logo = parseLogoConfig(newSettings.qrcode_logo_config);
+    if (logo.color) {
+      logo.color = processQRColor(logo.color, logo.color);
+      newSettings.qrcode_logo_config = stringifyLogoConfig(logo);
+    }
+
     newSettings.qrcode_error_correction = ["L", "M", "Q", "H"].indexOf(
       newSettings.qrcode_error_correction.charAt(0)
     );
 
     return newSettings;
-  }
-
-  get abolsuteWatermarkURL() {
-    return this.settings.image.startsWith("http")
-      ? this.settings.image
-      : getAbsoluteURL(this.settings.image);
   }
 }

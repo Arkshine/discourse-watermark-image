@@ -38,6 +38,14 @@ watermark_profiles:
       qrcode_error_correction:
         type: enum
         choices: [Low, Medium, Quarter, High]
+      qrcode_style_config:
+        type: string
+      qrcode_halftone_image:
+        type: upload
+      qrcode_logo_config:
+        type: string
+      qrcode_logo_image:
+        type: upload
       position:
         type: enum
         choices: [top-left, top-center, top-right, center-left, center, center-right, bottom-left, bottom-center, bottom-right]
@@ -112,6 +120,22 @@ watermark_qrcode_error_correction:
     - Medium
     - Quarter
     - High
+
+watermark_qrcode_style_config:
+  type: string
+  default: '{"style":"basic","params":{}}'
+
+watermark_qrcode_halftone_image:
+  type: upload
+  default: ""
+
+watermark_qrcode_logo_config:
+  type: string
+  default: '{"enabled":false}'
+
+watermark_qrcode_logo_image:
+  type: upload
+  default: ""
 
 watermark_position:
   type: enum

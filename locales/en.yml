@@ -40,6 +40,18 @@ en:
             qrcode_error_correction:
               label: QR error correction
               description: Error-correction level for the QR code.
+            qrcode_style_config:
+              label: QR style
+              description: Pick a QR code style and adjust its settings.
+            qrcode_halftone_image:
+              label: Halftone image
+              description: Image dithered behind the code by the Halftone background style (same origin or a CORS-enabled host).
+            qrcode_logo_config:
+              label: QR logo
+              description: Place an icon or an image in the center of the QR code.
+            qrcode_logo_image:
+              label: QR logo image
+              description: Image drawn in the center of the QR code (same origin or a CORS-enabled host).
             position:
               label: Position
               description: Where the watermark appears.
@@ -104,6 +116,10 @@ en:
           - Quartile: ~25% recovery<br>
           - High: ~30% recovery<br><br>
         More information about error correction levels can be found <a href="https://www.qrcode.com/en/about/error_correction.html" target="_blank">here.</a></details>
+      watermark_qrcode_style_config: Pick a QR code style and adjust its style-specific settings.
+      watermark_qrcode_halftone_image: Image dithered behind the code by the Halftone background style. Must be same-origin or served from a CORS-enabled host.
+      watermark_qrcode_logo_config: Place an icon or an image in the center of the QR code. Works with every style.
+      watermark_qrcode_logo_image: Image drawn in the center of the QR code. Must be same-origin or served from a CORS-enabled host.
       watermark_position: Choose where the watermark appears.
       watermark_margin_x: Adjust the horizontal margin of the watermark from the edge of the image (in % of the target image).
       watermark_margin_y: Adjust the vertical margin of the watermark from the edge of the image (in % of the target image).
@@ -154,6 +170,7 @@ en:
       expand: Open full size preview
       show: Show preview
       hide: Hide preview
+    scaled: "(open to see full size)"
   composer:
     errors:
       upload_not_authorized: "Sorry, the file you are trying to upload doesn't support watermarking (authorized extensions: %{authorized_extensions})."
@@ -174,6 +191,92 @@ en:
     color:
       value: Color value
       pick: Pick a color
+      add_stop: Add a gradient color
+      remove_stop: Back to a single color
+    reset_param: Reset to default
+    axes:
+      more_options: More options
+      fewer_options: Fewer options
+      templates: Templates
+      custom: Custom
+      roll: Surprise me
+      roll_title: "Generate QR code with random settings. Scan the result before publishing."
+      generate_more: Generate more
+      generate_more_title: "Generate four variations that keep this pattern and effect, changing everything else. Replaces the ones below each time."
+      scan_warning: "This choice does not scan on every camera, older phones especially. Test the code before publishing."
+      colors:
+        label: Colors
+        basis: Basis
+        eyes: Eyes
+        frame: Frame
+        multicolor: Multicolor
+        advanced: Advanced
+      params:
+        foreground: Foreground
+        background: Background
+        margin: Margin
+        eyeFrameColor: Eyes frame colour
+        eyeInColor: Eyes centre colour
+        dataColor: Data colour
+        frameGap: Frame gap
+        framePadding: Frame padding
+        frameThickness: Frame thickness
+        backdrop: Background style
+        frameColor: Frame colour
+        backdropStrength: Background strength
+        eyeWashOpacity: Eye background fade
+        halftoneScale: Image scale
+        halftoneCells: Image detail
+        halftoneAlignment: Solid alignment patterns
+        halftoneTiming: Solid timing patterns
+        halftoneBrightness: Image brightness
+        halftoneContrast: Image contrast
+        dataScale: Data scale
+        dataOpacity: Data opacity
+        quietZone: Quiet zone
+        invert: Invert
+        lineThickness: Line thickness
+        finderThickness: Finder thickness
+        seed: Seed
+        horizontalThickness: Horizontal thickness
+        verticalThickness: Vertical thickness
+        crossThickness: Cross thickness
+        randomize: Vary bubble size
+        cellColor: Cell colour
+        lineColor: Line colour
+        groutColor: Grout colour
+        fillStyle: Fill style
+        roughness: Roughness
+        bowing: Bowing
+        fillWeight: Fill weight
+        fillGap: Fill gap
+        strokeWidth: Stroke width
+        shapes: Shapes
+        shapeOpacity: Shape opacity
+        shapeGap: Shape gap
+        qrLayer: Code sits
+        offsetX: Offset X
+        offsetY: Offset Y
+        blendMode: Blend mode
+        glowAmount: Glow amount
+        clearance: Clearance
+        density: Density
+        dotSize: Fill size
+        innerSquare: Inner square
+        outerSquare: Outer square
+        tile:
+          cellColor: Tile colour
+    qr_logo:
+      source: Source
+      icon: Icon
+      color: Icon color
+      size: Size
+      padding: Padding
+      background: Use as background
+      transparent_background: Transparent background
+      show_data_behind: Show data behind
+      image_hint: Uploaded in the "qrcode logo image" setting below.
+      size_warning: This logo is too large to safely restore even at the highest error correction level. Shrink it or show the data behind it.
     positions:
       top_left: Top left
       top_center: Top center

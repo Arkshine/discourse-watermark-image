@@ -14,15 +14,24 @@ import WatermarkChoiceSegmented from "../components/settings/types/choice-segmen
 import WatermarkColorField from "../components/settings/types/color-field";
 import WatermarkPatternPicker from "../components/settings/types/pattern-picker";
 import WatermarkPositionPicker from "../components/settings/types/position-picker";
+import WatermarkQrLogo from "../components/settings/types/qr-logo";
+import WatermarkQrStyle from "../components/settings/types/qr-style";
 import WatermarkRotationDial from "../components/settings/types/rotation-dial";
 import WatermarkSlider from "../components/settings/types/slider";
 import WatermarkSourceToggle from "../components/settings/types/source-toggle";
 import WatermarkStepper from "../components/settings/types/stepper";
 import WatermarkSwitch from "../components/settings/types/switch";
+import matchProfile from "../lib/match-profile";
 import { imageDataToFile } from "../lib/media-watermark-utils";
 import { imagesExtensions } from "../lib/uploads";
 import UppyMediaWatermark from "../lib/uppy-media-watermark-plugin";
 import Watermark, { isImageAllowed } from "../lib/watermark";
+import {
+  LOGO_CONFIG_CHANGED_EVENT,
+  PROFILE_CHANGED_EVENT,
+  publishActiveLogoConfig,
+  publishActiveProfile,
+} from "../lib/watermark/active-state";
 
 const PROFILE_META_KEYS = new Set([
   "name",
@@ -32,50 +41,6 @@ const PROFILE_META_KEYS = new Set([
   "user_in_groups",
 ]);
 
-function matchProfile(profiles, composerModel, currentUser) {
-  if (!Array.isArray(profiles)) {
-    return null;
-  }
-
-  return (
-    profiles.find((profile) => {
-      if (!profile.enabled) {
-        return false;
-      }
-
-      const categories = profile.categories ?? [];
-
-      if (categories.length && !categories.includes(composerModel.categoryId)) {
-        return false;
-      }
-
-      if (Object.hasOwn(profile, "user_in_groups")) {
-        if (!profile.user_in_groups) {
-          return false;
-        }
-      }
-      // DEPRECATED: Once user_in_ is fully supported, remove this.
-      else if (profile.groups?.length) {
-        const requiredGroups = profile.groups
-          .split("|")
-          .filter(Boolean)
-          .map((group) => Number(group));
-
-        if (
-          !requiredGroups.includes(AUTO_GROUPS.everyone.id) &&
-          !currentUser.groups
-            .map((group) => group.id)
-            .some((group) => requiredGroups.includes(group))
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    }) ?? null
-  );
-}
-
 const PROFILE_CONFIG_KEYS = [
   "qrcode_enabled",
   "qrcode_text",
@@ -83,6 +48,10 @@ const PROFILE_CONFIG_KEYS = [
   "qrcode_background_color",
   "qrcode_quiet_zone",
   "qrcode_error_correction",
+  "qrcode_style_config",
+  "qrcode_halftone_image",
+  "qrcode_logo_config",
+  "qrcode_logo_image",
   "position",
   "margin_x",
   "margin_y",
@@ -152,6 +121,8 @@ class WatermarkInit {
       watermark_qrcode_background_color: WatermarkColorField,
       watermark_qrcode_quiet_zone: WatermarkStepper,
       watermark_qrcode_error_correction: WatermarkChoiceSegmented,
+      watermark_qrcode_style_config: WatermarkQrStyle,
+      watermark_qrcode_logo_config: WatermarkQrLogo,
     };
 
     const customLabels = {
@@ -238,9 +209,14 @@ class WatermarkInit {
 
           publishWatermarkProfile() {
             if (this.args.setting?.setting === "watermark_profiles") {
+              const profile = this.activeData?.[this.activeIndex];
+              publishActiveProfile(profile);
+              this.appEvents.trigger(PROFILE_CHANGED_EVENT, profile);
+
+              publishActiveLogoConfig(profile?.qrcode_logo_config);
               this.appEvents.trigger(
-                "watermark:profile-changed",
-                this.activeData?.[this.activeIndex]
+                LOGO_CONFIG_CHANGED_EVENT,
+                profile?.qrcode_logo_config
               );
             }
           }
@@ -331,7 +307,7 @@ class WatermarkInit {
               overwriteOptions,
             });
 
-            const imageData = await watermark.process();
+            const { data: imageData } = await watermark.process();
 
             if (!imageData) {
               return null;

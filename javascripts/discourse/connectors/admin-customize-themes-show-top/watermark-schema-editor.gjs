@@ -9,6 +9,7 @@ import { bind } from "discourse/lib/decorators";
 import { i18n } from "discourse-i18n";
 import SchemaTabs from "../../components/settings/schema-tabs";
 import WatermarkPreview from "../../components/watermark-preview";
+import { PROFILE_CHANGED_EVENT } from "../../lib/watermark/active-state";
 
 const SETTING_NAME = "watermark_profiles";
 const ANCHOR_SELECTOR = ".schema-setting-editor__wrapper";
@@ -122,12 +123,12 @@ export default class WatermarkSchemaPreview extends Component {
     super(...arguments);
 
     this.activeProfile = this.initialProfile;
-    this.appEvents.on("watermark:profile-changed", this.onProfileChanged);
+    this.appEvents.on(PROFILE_CHANGED_EVENT, this.onProfileChanged);
   }
 
   willDestroy() {
     super.willDestroy(...arguments);
-    this.appEvents.off("watermark:profile-changed", this.onProfileChanged);
+    this.appEvents.off(PROFILE_CHANGED_EVENT, this.onProfileChanged);
   }
 
   get settings() {

@@ -39,10 +39,6 @@
       width: 3.5em;
     }
 
-    .watermark-color-field__text {
-      width: 10em;
-    }
-
     .watermark-slider input[type="range"] {
       width: auto;
     }
@@ -56,7 +52,11 @@
       .schema-field[data-name="qrcode_color"],
       .schema-field[data-name="qrcode_background_color"],
       .schema-field[data-name="qrcode_quiet_zone"],
-      .schema-field[data-name="qrcode_error_correction"] {
+      .schema-field[data-name="qrcode_error_correction"],
+      .schema-field[data-name="qrcode_style_config"],
+      .schema-field[data-name="qrcode_halftone_image"],
+      .schema-field[data-name="qrcode_logo_config"],
+      .schema-field[data-name="qrcode_logo_image"] {
         display: none;
       }
     }
@@ -65,6 +65,29 @@
       .schema-field[data-name="qrcode_enabled"] input[value="qrcode"]:checked
     ) {
       .schema-field[data-name="image"] {
+        display: none;
+      }
+    }
+
+    &:not(
+      :has(
+        .schema-field[data-name="qrcode_style_config"]
+          .watermark-qr-style[data-backdrop="halftone"]
+      )
+    ) {
+      .schema-field[data-name="qrcode_halftone_image"] {
+        display: none;
+      }
+    }
+
+    &:not(
+      :has(
+        .schema-field[data-name="qrcode_logo_config"]
+          [data-logo-field="source"]
+          input[value="image"]:checked
+      )
+    ) {
+      .schema-field[data-name="qrcode_logo_image"] {
         display: none;
       }
     }
@@ -97,7 +120,11 @@
       [data-name="qrcode_color"],
       [data-name="qrcode_background_color"],
       [data-name="qrcode_quiet_zone"],
-      [data-name="qrcode_error_correction"]
+      [data-name="qrcode_error_correction"],
+      [data-name="qrcode_style_config"],
+      [data-name="qrcode_halftone_image"],
+      [data-name="qrcode_logo_config"],
+      [data-name="qrcode_logo_image"]
     ),
   .schema-setting-editor__fields[data-active-tab="appearance"]
     .schema-field:not(

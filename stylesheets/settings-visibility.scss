@@ -29,7 +29,34 @@
     [data-setting="watermark_qrcode_color"],
     [data-setting="watermark_qrcode_background_color"],
     [data-setting="watermark_qrcode_quiet_zone"],
-    [data-setting="watermark_qrcode_error_correction"] {
+    [data-setting="watermark_qrcode_error_correction"],
+    [data-setting="watermark_qrcode_style_config"],
+    [data-setting="watermark_qrcode_halftone_image"],
+    [data-setting="watermark_qrcode_logo_config"],
+    [data-setting="watermark_qrcode_logo_image"] {
+      display: none;
+    }
+  }
+
+  .theme.settings:not(
+      :has(
+        [data-setting="watermark_qrcode_style_config"]
+          .watermark-qr-style[data-backdrop="halftone"]
+      )
+    ) {
+    [data-setting="watermark_qrcode_halftone_image"] {
+      display: none;
+    }
+  }
+
+  .theme.settings:not(
+      :has(
+        [data-setting="watermark_qrcode_logo_config"]
+          [data-logo-field="source"]
+          input[value="image"]:checked
+      )
+    ) {
+    [data-setting="watermark_qrcode_logo_image"] {
       display: none;
     }
   }

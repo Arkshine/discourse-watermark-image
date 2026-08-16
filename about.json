@@ -12,10 +12,11 @@
     "worker_watermark": "assets/watermark.js",
     "worker_photon": "assets/photon/photon_rs_bg.js",
     "worker_photon_wasm": "assets/photon/photon_rs_bg.wasm",
-
-    "worker_qrcode": "assets/qrcode.js",
-    "worker_qrcodegen": "assets/qrcodegen/qrcodegen_no_heap_bg.js",
-    "worker_qrcodegen_wasm": "assets/qrcodegen/qrcodegen_no_heap_bg.wasm"
+    "qrcode": "assets/qrcode.js",
+    "qrcodegen": "assets/qrcodegen/qrcodegen_no_heap_bg.js",
+    "qrcodegen_wasm": "assets/qrcodegen/qrcodegen_no_heap_bg.wasm",
+    "roughjs": "assets/roughjs/rough.js",
+    "icons-sprite": "./assets/custom-icons.svg"
   },
   "modifiers": {}
 }

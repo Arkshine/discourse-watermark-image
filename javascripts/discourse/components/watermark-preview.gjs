@@ -19,6 +19,7 @@ import { i18n } from "discourse-i18n";
 import { imageURLToFile } from "../lib/media-watermark-utils";
 import Watermark, { WATERMARK_ALLOWED_EXTS_STRING } from "../lib/watermark";
 import draggablePanel from "../modifiers/drag-panel";
+import { PREVIEW_STYLE_EVENT } from "./settings/types/qr-style";
 
 const DEFAULT_PANEL_WIDTH = 300; // .watermark-preview__container
 const MAX_PREVIEW_SHARE = 0.55;
@@ -69,6 +70,7 @@ export default class WatermarkPreview extends Component {
   @tracked sampleSize = SAMPLE_SIZES[0];
   @tracked sampleId = randomSampleId();
   @tracked result = null;
+  @tracked hoveredConfig = null;
   @tracked userResizedPanel = false;
 
   applyingWatermark = false;
@@ -119,6 +121,8 @@ export default class WatermarkPreview extends Component {
       this.appEvents.on(event, handler)
     );
 
+    this.appEvents.on(PREVIEW_STYLE_EVENT, this.onPreviewStyle);
+
     return () => {
       document.removeEventListener("input", onSettingInput, { capture: true });
       document.removeEventListener("click", onClick, { capture: true });
@@ -126,6 +130,8 @@ export default class WatermarkPreview extends Component {
       uploadEvents.forEach(({ event, handler }) =>
         this.appEvents.off(event, handler)
       );
+
+      this.appEvents.off(PREVIEW_STYLE_EVENT, this.onPreviewStyle);
     };
   });
 
@@ -237,7 +243,26 @@ export default class WatermarkPreview extends Component {
   }
 
   get resolvedSettings() {
-    return this.args.settings ?? this.settingsValues();
+    const values = this.args.settings ?? this.settingsValues();
+
+    if (!this.hoveredConfig) {
+      return values;
+    }
+
+    return {
+      ...values,
+      watermark_qrcode_style_config: this.hoveredConfig,
+    };
+  }
+
+  @bind
+  onPreviewStyle(config) {
+    if (this.hoveredConfig === config) {
+      return;
+    }
+
+    this.hoveredConfig = config;
+    this.onSettingChange();
   }
 
   @action
@@ -352,9 +377,7 @@ export default class WatermarkPreview extends Component {
 
     const scale =
       this.panelWidth < meta.uploadWidth
-        ? ` · ${i18n(themePrefix("preview.scaled"), {
-            percent: Math.round((this.panelWidth / meta.uploadWidth) * 100),
-          })}`
+        ? ` · ${i18n(themePrefix("preview.scaled"))}`
         : "";
 
     return `${meta.uploadWidth}×${meta.uploadHeight} · watermark ${meta.watermarkWidth}px (${share}%)${perModule}${tiles}${scale}`;

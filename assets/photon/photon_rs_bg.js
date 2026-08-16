@@ -4486,8 +4486,7 @@ function __wbg_get_imports() {
       arg9
     ) {
       arg0.drawImage(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
-    },
-    arguments);
+    }, arguments);
   };
   imports.wbg.__wbg_error_7534b8e9a36f1ab4 = function (arg0, arg1) {
     let deferred0_0;
