@@ -2,12 +2,15 @@ import Component from "@glimmer/component";
 import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
+import { debounce } from "@ember/runloop";
 import { resolveColor } from "discourse/lib/color-transformations";
 import dConcatClass from "discourse/ui-kit/helpers/d-concat-class";
 import dIcon from "discourse/ui-kit/helpers/d-icon";
 import { i18n } from "discourse-i18n";
 import WatermarkChoiceSegmented from "./choice-segmented";
 import WatermarkSlider from "./slider";
+
+const STOP_UPDATE_DEBOUNCE = 50;
 
 const GRADIENT_TYPES = {
   setting: "gradient_type",
@@ -33,6 +36,8 @@ export default class WatermarkColorField extends Component {
   gradientTypes = GRADIENT_TYPES;
   gradientAngle = GRADIENT_ANGLE;
   blendModes = BLEND_MODES;
+
+  #pendingStop = null;
 
   get gradient() {
     const value = this.args.value;
@@ -94,7 +99,12 @@ export default class WatermarkColorField extends Component {
 
   @action
   updateStop(index, event) {
-    const color = event.target.value;
+    this.#pendingStop = { index, color: event.target.value };
+    debounce(this, this.#commitStop, STOP_UPDATE_DEBOUNCE);
+  }
+
+  #commitStop() {
+    const { index, color } = this.#pendingStop;
 
     if (!this.gradient) {
       this.args.changeValueCallback(color);

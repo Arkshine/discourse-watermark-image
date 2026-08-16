@@ -16,8 +16,8 @@ import {
   MAX_ERROR_CORRECTION,
   parseLogoConfig,
   stringifyLogoConfig,
-} from "../../../lib/qr-logo";
-import { RANDOM_LOGO_EVENT } from "../../../lib/qr-random";
+} from "../../../lib/qr-settings/logo";
+import { RANDOM_LOGO_EVENT } from "../../../lib/qr-settings/random";
 import {
   LOGO_CONFIG_CHANGED_EVENT,
   publishActiveLogoConfig,

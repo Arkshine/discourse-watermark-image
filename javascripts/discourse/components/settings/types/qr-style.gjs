@@ -22,17 +22,17 @@ import {
   stringifyAxisConfig,
   templateFor,
   TEMPLATES,
-} from "../../../lib/qr-axes";
+} from "../../../lib/qr-settings/axes";
 import {
   LOGO_DEFAULTS,
   parseLogoConfig,
   stringifyLogoConfig,
-} from "../../../lib/qr-logo";
+} from "../../../lib/qr-settings/logo";
 import {
   RANDOM_LOGO_EVENT,
   randomLogo,
   randomStyle,
-} from "../../../lib/qr-random";
+} from "../../../lib/qr-settings/random";
 import { absoluteUploadURL, resolveIconSVG } from "../../../lib/watermark";
 import {
   activeLogoConfig,

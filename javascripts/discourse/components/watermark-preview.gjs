@@ -35,6 +35,7 @@ const SAMPLE_SIZES = [
   { label: "2400 × 1600", width: 2400, height: 1600 },
 ];
 
+const UPDATE_DEBOUNCE = 30;
 const SPINNER_DELAY = 500;
 
 const SETTING_CONTAINER_SELECTOR = ".theme.settings > [data-setting]";

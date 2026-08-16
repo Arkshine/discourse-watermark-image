@@ -2439,12 +2439,6 @@ function composeSvg(layers, params, qr, opts = {}) {
         : transformScale(
             layer.transform ? `transform="${layer.transform}"` : ""
           );
-
-      const scale = layer.fillSize
-        ? 1
-        : transformScale(
-            layer.transform ? `transform="${layer.transform}"` : ""
-          );
       const boxX = (useCanvas ? -margin : 0) / scale;
       const boxSize = (layer.fillSize ?? (useCanvas ? size : qr.size)) / scale;
       svg += `${open}<rect x="${fmt(boxX)}" y="${fmt(boxX)}" width="${fmt(boxSize)}" height="${fmt(boxSize)}" fill="${layer.paint}"${attrs}${transform}${clipAttr}${opacity} mask="url(#${layer.maskId})"/>${close}`;
