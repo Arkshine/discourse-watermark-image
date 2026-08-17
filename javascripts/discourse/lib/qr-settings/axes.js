@@ -618,14 +618,27 @@ function paramsEqual(a, b) {
   );
 }
 
+function logoMatches(logo, templateLogo) {
+  if (logo === undefined) {
+    return true;
+  }
+
+  const expected = { ...LOGO_DEFAULTS, ...templateLogo };
+
+  if (!logo.enabled && !expected.enabled) {
+    return true;
+  }
+
+  return paramsEqual(logo, expected);
+}
+
 export function templateFor(config, logo) {
   return (
     TEMPLATES.find(
       (template) =>
         TEMPLATE_AXES.every((axis) => config[axis] === template.config[axis]) &&
         paramsEqual(config.params, template.config.params) &&
-        (logo === undefined ||
-          paramsEqual(logo, { ...LOGO_DEFAULTS, ...template.logo }))
+        logoMatches(logo, template.logo)
     )?.key ?? null
   );
 }
