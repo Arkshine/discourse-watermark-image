@@ -19,9 +19,9 @@ en:
             groups:
               label: Groups
               description: Apply this profile to users in these groups.
-            qrcode_enabled:
+            source:
               label: Source
-              description: Whether the watermark is an image or a generated QR code.
+              description: Whether the watermark is an image, a generated QR code, or text.
             image:
               label: Image
               description: The watermark image for this profile.
@@ -52,6 +52,12 @@ en:
             qrcode_logo_image:
               label: QR logo image
               description: Image drawn in the center of the QR code (same origin or a CORS-enabled host).
+            text:
+              label: Text
+              description: The text to draw as the watermark. Supports multiple lines.
+            text_style:
+              label: Text style
+              description: Font, weight, style, alignment, color, outline, shadow, and background of the watermark text.
             position:
               label: Position
               description: Where the watermark appears.
@@ -97,7 +103,7 @@ en:
       watermark_image: |
         The image to use as watermark.<br>
         Supported formats: PNG, JPEG, BMP, ICO, TIFF, WEBP.
-      watermark_qrcode_enabled: Whether the watermark is an image or a generated QR code.
+      watermark_source: Whether the watermark is an image, a generated QR code, or text.
       watermark_qrcode_text: |
         The text to encode in the QR code.
         There are placeholders available:<br>
@@ -120,6 +126,8 @@ en:
       watermark_qrcode_halftone_image: Image dithered behind the code by the Halftone background style. Must be same-origin or served from a CORS-enabled host.
       watermark_qrcode_logo_config: Place an icon or an image in the center of the QR code. Works with every style.
       watermark_qrcode_logo_image: Image drawn in the center of the QR code. Must be same-origin or served from a CORS-enabled host.
+      watermark_text: The text to draw as the watermark. Supports multiple lines.
+      watermark_text_style: Font, weight, style, alignment, color, outline, shadow, and background of the watermark text.
       watermark_position: Choose where the watermark appears.
       watermark_margin_x: Adjust the horizontal margin of the watermark from the edge of the image (in % of the target image).
       watermark_margin_y: Adjust the vertical margin of the watermark from the edge of the image (in % of the target image).
@@ -185,6 +193,24 @@ en:
     source:
       image: Image
       qrcode: QR code
+      text: Text
+    text:
+      length_warning: Long text may reduce rendering quality or slow down uploads.
+    text_style:
+      params:
+        font: Font
+        weight: Weight
+        italic: Italic
+        case: Case
+        letter_spacing: Letter spacing
+        align: Alignment
+        color: Color
+        stroke_width: Outline width
+        stroke_color: Outline color
+        shadow_blur: Shadow blur
+        shadow_color: Shadow color
+        background: Background
+        background_color: Background color
     stepper:
       decrease: Decrease
       increase: Increase

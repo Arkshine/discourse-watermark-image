@@ -1,4 +1,3 @@
-
 watermark_default_enabled:
   type: bool
   default: false
@@ -22,8 +21,9 @@ watermark_profiles:
       groups:
         type: groups
         resolve_group_membership: true
-      qrcode_enabled:
-        type: boolean
+      source:
+        type: enum
+        choices: [image, qrcode, text]
       image:
         type: upload
       qrcode_text:
@@ -46,9 +46,24 @@ watermark_profiles:
         type: string
       qrcode_logo_image:
         type: upload
+      text:
+        type: string
+      text_style:
+        type: string
       position:
         type: enum
-        choices: [top-left, top-center, top-right, center-left, center, center-right, bottom-left, bottom-center, bottom-right]
+        choices:
+          [
+            top-left,
+            top-center,
+            top-right,
+            center-left,
+            center,
+            center-right,
+            bottom-left,
+            bottom-center,
+            bottom-right,
+          ]
       margin_x:
         type: integer
       margin_y:
@@ -83,11 +98,33 @@ watermark_profiles:
         type: integer
       blend_mode:
         type: enum
-        choices: [normal, overlay, over, atop, xor, plus, multiply, burn, difference, soft_light, screen, hard_light, dodge, exclusion, lighten, darken]
+        choices:
+          [
+            normal,
+            overlay,
+            over,
+            atop,
+            xor,
+            plus,
+            multiply,
+            burn,
+            difference,
+            soft_light,
+            screen,
+            hard_light,
+            dodge,
+            exclusion,
+            lighten,
+            darken,
+          ]
 
-watermark_qrcode_enabled:
-  type: bool
-  default: false
+watermark_source:
+  type: enum
+  default: "image"
+  choices:
+    - image
+    - qrcode
+    - text
 
 watermark_image:
   type: upload
@@ -136,6 +173,15 @@ watermark_qrcode_logo_config:
 watermark_qrcode_logo_image:
   type: upload
   default: ""
+
+watermark_text:
+  type: string
+  default: ""
+  textarea: true
+
+watermark_text_style:
+  type: string
+  default: '{"font":"{\"key\":\"site\"}","weight":"normal","italic":false,"textCase":"none","letterSpacing":"0","align":"center","color":"#ffffff","strokeColor":"#000000","strokeWidth":"4","shadowColor":"#000000","shadowBlur":"0","backgroundEnabled":false,"backgroundColor":"#000000"}'
 
 watermark_position:
   type: enum

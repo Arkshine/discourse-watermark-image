@@ -39,7 +39,8 @@ const UPDATE_DEBOUNCE = 30;
 const SPINNER_DELAY = 500;
 
 const SETTING_CONTAINER_SELECTOR = ".theme.settings > [data-setting]";
-const SETTING_INPUT_SELECTOR = `${SETTING_CONTAINER_SELECTOR} input:not([type="file"])`;
+const SETTING_INPUT_SELECTOR = `${SETTING_CONTAINER_SELECTOR} input:not([type="file"]), ${SETTING_CONTAINER_SELECTOR} textarea`;
+const SETTING_SWITCH_SELECTOR = `${SETTING_CONTAINER_SELECTOR} [role="switch"]`;
 const SETTINGS_SECTION_SELECTOR =
   '.theme.settings [data-setting^="watermark_"]';
 
@@ -100,7 +101,11 @@ export default class WatermarkPreview extends Component {
         element.classList?.contains(classname) ||
         element.closest("button")?.classList.contains(classname);
 
-      if (buttonAllowed(target, "undo") || buttonAllowed(target, "cancel")) {
+      if (
+        buttonAllowed(target, "undo") ||
+        buttonAllowed(target, "cancel") ||
+        target.closest?.(SETTING_SWITCH_SELECTOR)
+      ) {
         next(this, this.onSettingChange);
       }
     };
@@ -297,9 +302,10 @@ export default class WatermarkPreview extends Component {
 
   async #renderWatermark(element, options) {
     const settingsValues = this.resolvedSettings;
+    const source = settingsValues.watermark_source;
     const emptyWatermark =
-      !settingsValues.watermark_image &&
-      !settingsValues.watermark_qrcode_enabled;
+      (source === "image" && !settingsValues.watermark_image) ||
+      (source === "text" && !settingsValues.watermark_text);
 
     let file = this.imageSourceFile;
 

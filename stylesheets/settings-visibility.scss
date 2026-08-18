@@ -23,7 +23,7 @@
   }
 
   .theme.settings:has(
-      [data-setting="watermark_qrcode_enabled"] input[value="image"]:checked
+      [data-setting="watermark_source"] input[value="image"]:checked
     ) {
     [data-setting="watermark_qrcode_text"],
     [data-setting="watermark_qrcode_color"],
@@ -33,7 +33,9 @@
     [data-setting="watermark_qrcode_style_config"],
     [data-setting="watermark_qrcode_halftone_image"],
     [data-setting="watermark_qrcode_logo_config"],
-    [data-setting="watermark_qrcode_logo_image"] {
+    [data-setting="watermark_qrcode_logo_image"],
+    [data-setting="watermark_text"],
+    [data-setting="watermark_text_style"] {
       display: none;
     }
   }
@@ -62,9 +64,28 @@
   }
 
   .theme.settings:has(
-      [data-setting="watermark_qrcode_enabled"] input[value="qrcode"]:checked
+      [data-setting="watermark_source"] input[value="qrcode"]:checked
     ) {
-    [data-setting="watermark_image"] {
+    [data-setting="watermark_image"],
+    [data-setting="watermark_text"],
+    [data-setting="watermark_text_style"] {
+      display: none;
+    }
+  }
+
+  .theme.settings:has(
+      [data-setting="watermark_source"] input[value="text"]:checked
+    ) {
+    [data-setting="watermark_image"],
+    [data-setting="watermark_qrcode_text"],
+    [data-setting="watermark_qrcode_color"],
+    [data-setting="watermark_qrcode_background_color"],
+    [data-setting="watermark_qrcode_quiet_zone"],
+    [data-setting="watermark_qrcode_error_correction"],
+    [data-setting="watermark_qrcode_style_config"],
+    [data-setting="watermark_qrcode_halftone_image"],
+    [data-setting="watermark_qrcode_logo_config"],
+    [data-setting="watermark_qrcode_logo_image"] {
       display: none;
     }
   }

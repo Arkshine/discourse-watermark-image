@@ -12,6 +12,7 @@ import {
   stringifyAxisConfig,
 } from "./qr-settings/axes";
 import { parseLogoConfig, stringifyLogoConfig } from "./qr-settings/logo";
+import { renderTextWatermark } from "./text-watermark";
 import { workerManager } from "./watermark/worker";
 
 export const WATERMARK_ALLOWED_EXTS = new Set([
@@ -35,6 +36,43 @@ export function isImageAllowed(path) {
 
 export function absoluteUploadURL(value) {
   return value.startsWith("http") ? value : getAbsoluteURL(value);
+}
+
+const DEFAULT_TEXT_STYLE = {
+  font: '{"key":"site"}',
+  weight: "normal",
+  italic: false,
+  textCase: "none",
+  letterSpacing: "0",
+  align: "center",
+  color: "#ffffff",
+  strokeColor: "#000000",
+  strokeWidth: "4",
+  shadowColor: "#000000",
+  shadowBlur: "0",
+  backgroundEnabled: false,
+  backgroundColor: "#000000",
+};
+
+function parseTextStyle(value) {
+  try {
+    return { ...DEFAULT_TEXT_STYLE, ...JSON.parse(value) };
+  } catch {
+    return { ...DEFAULT_TEXT_STYLE };
+  }
+}
+
+function resolveColorOrGradient(color, defaultColor) {
+  if (color && typeof color === "object") {
+    return {
+      ...color,
+      stops: (color.stops ?? []).map((stop) =>
+        resolveColorOrGradient(stop, "#000000")
+      ),
+    };
+  }
+
+  return (color && resolveColor(color)) || defaultColor;
 }
 
 export async function resolveIconSVG(name) {
@@ -118,11 +156,28 @@ export default class Watermark {
     const watermarkSettings = this.settings;
     let watermarkBuffer = null;
 
-    if (!watermarkSettings.qrcode_enabled) {
+    if (watermarkSettings.source === "image") {
       const watermarkFile = await getWatermarkFile(
         absoluteUploadURL(watermarkSettings.image)
       );
       watermarkBuffer = await watermarkFile.arrayBuffer();
+    } else if (watermarkSettings.source === "text") {
+      watermarkBuffer = await renderTextWatermark({
+        text: watermarkSettings.text,
+        font: watermarkSettings.font,
+        fontWeight: watermarkSettings.font_weight,
+        italic: watermarkSettings.font_italic,
+        textCase: watermarkSettings.text_case,
+        letterSpacing: watermarkSettings.text_letter_spacing,
+        align: watermarkSettings.text_align,
+        color: watermarkSettings.text_color,
+        strokeColor: watermarkSettings.text_stroke_color,
+        strokeWidth: watermarkSettings.text_stroke_width,
+        shadowColor: watermarkSettings.text_shadow_color,
+        shadowBlur: watermarkSettings.text_shadow_blur,
+        backgroundEnabled: watermarkSettings.text_background_enabled,
+        backgroundColor: watermarkSettings.text_background_color,
+      });
     }
 
     watermarkSettings.buffer = watermarkBuffer;
@@ -155,20 +210,46 @@ export default class Watermark {
     newSettings.margin_x = newSettings.margin_x / 100;
     newSettings.margin_y = newSettings.margin_y / 100;
     newSettings.opacity = newSettings.opacity / 100;
+    newSettings.qrcode_enabled = newSettings.source === "qrcode";
 
-    if (newSettings.qrcode_text) {
-      newSettings.qrcode_text = newSettings.qrcode_text
-        .replace("{homepage}", getAbsoluteURL(""))
-        .replace("{username}", this.currentUser.username)
-        .replace("{sitename}", this.siteSettings.title);
-
+    const applyPlaceholders = (text) => {
       const topicUrl = getAbsoluteURL(this.topicData?.url || "");
 
-      newSettings.qrcode_text = newSettings.qrcode_text.replace(
-        "{topic_url}",
-        topicUrl
-      );
+      return text
+        .replace("{homepage}", getAbsoluteURL(""))
+        .replace("{username}", this.currentUser.username)
+        .replace("{sitename}", this.siteSettings.title)
+        .replace("{topic_url}", topicUrl);
+    };
+
+    if (newSettings.qrcode_text) {
+      newSettings.qrcode_text = applyPlaceholders(newSettings.qrcode_text);
     }
+
+    if (newSettings.text) {
+      newSettings.text = applyPlaceholders(newSettings.text);
+    }
+
+    const textStyle = parseTextStyle(newSettings.text_style);
+    newSettings.font = textStyle.font;
+    newSettings.font_weight = textStyle.weight;
+    newSettings.font_italic = Boolean(textStyle.italic);
+    newSettings.text_case = textStyle.textCase;
+    newSettings.text_letter_spacing = Number(textStyle.letterSpacing) || 0;
+    newSettings.text_align = textStyle.align;
+    newSettings.text_color = resolveColorOrGradient(textStyle.color, "#ffffff");
+    newSettings.text_stroke_color =
+      (textStyle.strokeColor && resolveColor(textStyle.strokeColor)) ||
+      "#000000";
+    newSettings.text_stroke_width = Number(textStyle.strokeWidth) || 0;
+    newSettings.text_shadow_color =
+      (textStyle.shadowColor && resolveColor(textStyle.shadowColor)) ||
+      "#000000";
+    newSettings.text_shadow_blur = Number(textStyle.shadowBlur) || 0;
+    newSettings.text_background_enabled = Boolean(textStyle.backgroundEnabled);
+    newSettings.text_background_color =
+      (textStyle.backgroundColor && resolveColor(textStyle.backgroundColor)) ||
+      "#000000";
 
     if (newSettings.qrcode_halftone_image) {
       newSettings.qrcode_halftone_image_url = absoluteUploadURL(
@@ -182,25 +263,12 @@ export default class Watermark {
       );
     }
 
-    const processQRColor = (color, defaultColor) => {
-      if (color && typeof color === "object") {
-        return {
-          ...color,
-          stops: (color.stops ?? []).map((stop) =>
-            processQRColor(stop, "#000000")
-          ),
-        };
-      }
-
-      return (color && resolveColor(color)) || defaultColor;
-    };
-
-    newSettings.qrcode_color = processQRColor(
+    newSettings.qrcode_color = resolveColorOrGradient(
       newSettings.qrcode_color,
       "#000000"
     );
 
-    newSettings.qrcode_background_color = processQRColor(
+    newSettings.qrcode_background_color = resolveColorOrGradient(
       newSettings.qrcode_background_color,
       "#ffffff"
     );
@@ -214,7 +282,7 @@ export default class Watermark {
       }
 
       if (spec.type === "color") {
-        resolved[key] = processQRColor(
+        resolved[key] = resolveColorOrGradient(
           resolved[key],
           key === "background" ? "#ffffff" : "#000000"
         );
@@ -245,7 +313,7 @@ export default class Watermark {
 
     const logo = parseLogoConfig(newSettings.qrcode_logo_config);
     if (logo.color) {
-      logo.color = processQRColor(logo.color, logo.color);
+      logo.color = resolveColorOrGradient(logo.color, logo.color);
       newSettings.qrcode_logo_config = stringifyLogoConfig(logo);
     }
 

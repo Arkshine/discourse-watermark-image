@@ -13,7 +13,7 @@
     display: contents;
   }
 
-  .schema-field[data-name="qrcode_enabled"] .schema-field__input,
+  .schema-field[data-name="source"] .schema-field__input,
   .schema-field[data-name="enabled"] .schema-field__input {
     flex-direction: column;
     align-items: flex-start;
@@ -31,7 +31,9 @@
     .watermark-blend-picker,
     .watermark-choice-segmented,
     .watermark-color-field,
-    .watermark-rotation-dial {
+    .watermark-rotation-dial,
+    .watermark-font-picker,
+    .watermark-text-style {
       align-self: flex-start;
     }
 
@@ -45,9 +47,32 @@
   }
 
   .schema-setting-editor__fields {
-    &:has(
-      .schema-field[data-name="qrcode_enabled"] input[value="image"]:checked
-    ) {
+    &:has(.schema-field[data-name="source"] input[value="image"]:checked) {
+      .schema-field[data-name="qrcode_text"],
+      .schema-field[data-name="qrcode_color"],
+      .schema-field[data-name="qrcode_background_color"],
+      .schema-field[data-name="qrcode_quiet_zone"],
+      .schema-field[data-name="qrcode_error_correction"],
+      .schema-field[data-name="qrcode_style_config"],
+      .schema-field[data-name="qrcode_halftone_image"],
+      .schema-field[data-name="qrcode_logo_config"],
+      .schema-field[data-name="qrcode_logo_image"],
+      .schema-field[data-name="text"],
+      .schema-field[data-name="text_style"] {
+        display: none;
+      }
+    }
+
+    &:has(.schema-field[data-name="source"] input[value="qrcode"]:checked) {
+      .schema-field[data-name="image"],
+      .schema-field[data-name="text"],
+      .schema-field[data-name="text_style"] {
+        display: none;
+      }
+    }
+
+    &:has(.schema-field[data-name="source"] input[value="text"]:checked) {
+      .schema-field[data-name="image"],
       .schema-field[data-name="qrcode_text"],
       .schema-field[data-name="qrcode_color"],
       .schema-field[data-name="qrcode_background_color"],
@@ -57,14 +82,6 @@
       .schema-field[data-name="qrcode_halftone_image"],
       .schema-field[data-name="qrcode_logo_config"],
       .schema-field[data-name="qrcode_logo_image"] {
-        display: none;
-      }
-    }
-
-    &:has(
-      .schema-field[data-name="qrcode_enabled"] input[value="qrcode"]:checked
-    ) {
-      .schema-field[data-name="image"] {
         display: none;
       }
     }
@@ -114,7 +131,7 @@
     .schema-field:not(
       [data-name="name"],
       [data-name="enabled"],
-      [data-name="qrcode_enabled"],
+      [data-name="source"],
       [data-name="image"],
       [data-name="qrcode_text"],
       [data-name="qrcode_color"],
@@ -124,7 +141,9 @@
       [data-name="qrcode_style_config"],
       [data-name="qrcode_halftone_image"],
       [data-name="qrcode_logo_config"],
-      [data-name="qrcode_logo_image"]
+      [data-name="qrcode_logo_image"],
+      [data-name="text"],
+      [data-name="text_style"]
     ),
   .schema-setting-editor__fields[data-active-tab="appearance"]
     .schema-field:not(

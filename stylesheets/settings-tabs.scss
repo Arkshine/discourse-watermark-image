@@ -77,7 +77,7 @@
     [data-setting]:not(
       [data-setting="watermark_profiles"],
       [data-setting="watermark_default_enabled"],
-      [data-setting="watermark_qrcode_enabled"],
+      [data-setting="watermark_source"],
       [data-setting="watermark_image"],
       [data-setting="watermark_qrcode_text"],
       [data-setting="watermark_qrcode_color"],
@@ -87,7 +87,9 @@
       [data-setting="watermark_qrcode_style_config"],
       [data-setting="watermark_qrcode_halftone_image"],
       [data-setting="watermark_qrcode_logo_config"],
-      [data-setting="watermark_qrcode_logo_image"]
+      [data-setting="watermark_qrcode_logo_image"],
+      [data-setting="watermark_text"],
+      [data-setting="watermark_text_style"]
     ),
   .theme.settings[data-active-tab="appearance"]
     [data-setting]:not(

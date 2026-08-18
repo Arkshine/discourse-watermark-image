@@ -21,6 +21,8 @@ import WatermarkSlider from "../components/settings/types/slider";
 import WatermarkSourceToggle from "../components/settings/types/source-toggle";
 import WatermarkStepper from "../components/settings/types/stepper";
 import WatermarkSwitch from "../components/settings/types/switch";
+import WatermarkTextStyle from "../components/settings/types/text-style";
+import WatermarkTextarea from "../components/settings/types/textarea";
 import matchProfile from "../lib/match-profile";
 import { imageDataToFile } from "../lib/media-watermark-utils";
 import { imagesExtensions } from "../lib/uploads";
@@ -42,7 +44,7 @@ const PROFILE_META_KEYS = new Set([
 ]);
 
 const PROFILE_CONFIG_KEYS = [
-  "qrcode_enabled",
+  "source",
   "qrcode_text",
   "qrcode_color",
   "qrcode_background_color",
@@ -52,6 +54,8 @@ const PROFILE_CONFIG_KEYS = [
   "qrcode_halftone_image",
   "qrcode_logo_config",
   "qrcode_logo_image",
+  "text",
+  "text_style",
   "position",
   "margin_x",
   "margin_y",
@@ -116,17 +120,19 @@ class WatermarkInit {
       watermark_max_size: WatermarkSlider,
       watermark_pattern_max_count: WatermarkStepper,
       watermark_pattern_spacing: WatermarkStepper,
-      watermark_qrcode_enabled: WatermarkSourceToggle,
+      watermark_source: WatermarkSourceToggle,
       watermark_qrcode_color: WatermarkColorField,
       watermark_qrcode_background_color: WatermarkColorField,
       watermark_qrcode_quiet_zone: WatermarkStepper,
       watermark_qrcode_error_correction: WatermarkChoiceSegmented,
       watermark_qrcode_style_config: WatermarkQrStyle,
       watermark_qrcode_logo_config: WatermarkQrLogo,
+      watermark_text: WatermarkTextarea,
+      watermark_text_style: WatermarkTextStyle,
     };
 
     const customLabels = {
-      watermark_qrcode_enabled: "Watermark source",
+      watermark_source: "Watermark source",
     };
 
     api.modifyClass(
@@ -250,7 +256,12 @@ class WatermarkInit {
             const overwriteOptions = profileToOverwriteOptions(profile);
             const merged = { ...settings, ...overwriteOptions };
 
-            if (!merged.watermark_image && !merged.watermark_qrcode_enabled) {
+            const source = merged.watermark_source;
+
+            if (
+              (source === "image" && !merged.watermark_image) ||
+              (source === "text" && !merged.watermark_text)
+            ) {
               return null;
             }
 

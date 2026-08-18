@@ -3,22 +3,20 @@ import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { i18n } from "discourse-i18n";
 
-// `watermark_qrcode_enabled` reframed as the watermark's source type.
-const OPTIONS = ["image", "qrcode"];
+const OPTIONS = ["image", "qrcode", "text"];
 
 export default class WatermarkSourceToggle extends Component {
   get segments() {
-    const current = String(this.args.value) === "true" ? "qrcode" : "image";
     return OPTIONS.map((value) => ({
       value,
       label: i18n(themePrefix(`settings_ui.source.${value}`)),
-      checked: value === current,
+      checked: value === this.args.value,
     }));
   }
 
   @action
   select(event) {
-    this.args.changeValueCallback(event.target.value === "qrcode");
+    this.args.changeValueCallback(event.target.value);
   }
 
   <template>

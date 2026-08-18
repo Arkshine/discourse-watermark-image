@@ -15,16 +15,20 @@ import WatermarkSlider from "./types/slider";
 import WatermarkSourceToggle from "./types/source-toggle";
 import WatermarkStepper from "./types/stepper";
 import WatermarkSwitch from "./types/switch";
+import WatermarkTextStyle from "./types/text-style";
+import WatermarkTextarea from "./types/textarea";
 
 export const SCHEMA_CONTROLS = {
   enabled: WatermarkSwitch,
-  qrcode_enabled: WatermarkSourceToggle,
+  source: WatermarkSourceToggle,
   qrcode_color: WatermarkColorField,
   qrcode_background_color: WatermarkColorField,
   qrcode_quiet_zone: WatermarkStepper,
   qrcode_error_correction: WatermarkChoiceSegmented,
   qrcode_style_config: WatermarkQrStyle,
   qrcode_logo_config: WatermarkQrLogo,
+  text: WatermarkTextarea,
+  text_style: WatermarkTextStyle,
   position: WatermarkPositionPicker,
   margin_x: WatermarkStepper,
   margin_y: WatermarkStepper,
