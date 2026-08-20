@@ -771,6 +771,26 @@
       }
     }
 
+    &__separator {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      margin: var(--space-1) 0;
+
+      &::after {
+        content: "";
+        flex: 1;
+        border-top: 1px solid var(--primary-low);
+      }
+    }
+
+    &__separator-badge {
+      font-size: var(--font-down-2);
+      font-weight: bold;
+      color: var(--tertiary);
+    }
+
     @keyframes watermark-axis-gallery-in {
       from {
         opacity: 0;

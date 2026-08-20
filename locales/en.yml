@@ -259,6 +259,11 @@ en:
         halftoneContrast: Image contrast
         dataScale: Data scale
         dataOpacity: Data opacity
+        frameText: Caption text
+        frameLabelShape: Caption style
+        frameLabelPosition: Caption position
+        frameFont: Caption font
+        frameTextColor: Caption colour
         quietZone: Quiet zone
         invert: Invert
         lineThickness: Line thickness

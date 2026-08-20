@@ -27,7 +27,7 @@ async function renderQrOnly(event) {
   try {
     await loadQrCode();
 
-    const data = await renderQrCode(params.settings, params.size);
+    const { png: data } = await renderQrCode(params.settings, params.size);
 
     postMessage({ incomingSeq: seq, data }, [data.buffer]);
   } catch (error) {
@@ -547,6 +547,31 @@ function maskRegion(region, shape) {
   region.set_imgdata(imageData);
 }
 
+function maskRegionFromAlpha(region, alphaSource, offsetX, offsetY) {
+  const imageData = region.get_image_data();
+  const { width, height, data } = imageData;
+  const { width: srcWidth, height: srcHeight, data: srcData } = alphaSource;
+
+  for (let y = 0; y < height; y++) {
+    const sy = y + offsetY;
+
+    for (let x = 0; x < width; x++) {
+      const sx = x + offsetX;
+      const i = (y * width + x) * 4 + 3;
+
+      if (sx < 0 || sx >= srcWidth || sy < 0 || sy >= srcHeight) {
+        data[i] = 0;
+        continue;
+      }
+
+      const srcAlpha = srcData[(sy * srcWidth + sx) * 4 + 3];
+      data[i] = Math.round((data[i] * srcAlpha) / 255);
+    }
+  }
+
+  region.set_imgdata(imageData);
+}
+
 function hexToRgb(hex) {
   const match = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex ?? "");
 
@@ -608,6 +633,7 @@ async function applyWatermark(event) {
   let watermarkWidth;
   let watermarkHeight;
   let qrModules = null;
+  let qrMaskImage = null;
 
   try {
     if (watermarkParams.qrcode_enabled) {
@@ -623,13 +649,17 @@ async function applyWatermark(event) {
       watermarkParams.qrcode_size_slack =
         uploadWidth * SIZE_SLACK * QR_SUPERSAMPLE;
 
-      const qrBytes = await renderQrCode(
+      const { png: qrBytes, mask: qrMaskBytes } = await renderQrCode(
         watermarkParams,
         budget * QR_SUPERSAMPLE
       );
 
       watermarkImage = PhotonImage.new_from_byteslice(qrBytes);
       qrModules = lastQrModules;
+
+      if (qrMaskBytes) {
+        qrMaskImage = PhotonImage.new_from_byteslice(qrMaskBytes);
+      }
 
       if (QR_SUPERSAMPLE > 1) {
         watermarkImage = resize(
@@ -638,6 +668,15 @@ async function applyWatermark(event) {
           Math.round(watermarkImage.get_height() / QR_SUPERSAMPLE),
           SamplingFilter.Lanczos3
         );
+
+        if (qrMaskImage) {
+          qrMaskImage = resize(
+            qrMaskImage,
+            watermarkImage.get_width(),
+            watermarkImage.get_height(),
+            SamplingFilter.Lanczos3
+          );
+        }
       }
     } else {
       watermarkImage = PhotonImage.new_from_byteslice(
@@ -756,6 +795,7 @@ async function applyWatermark(event) {
     const w = watermarkImage.get_width();
     const h = watermarkImage.get_height();
     const radius = Math.max(2, Math.round(Math.min(w, h) / 18));
+    const alphaSource = qrMaskImage ? qrMaskImage.get_image_data() : null;
 
     for (const position of positions) {
       const x1 = Math.max(0, Math.round(position.x));
@@ -780,7 +820,14 @@ async function applyWatermark(event) {
         }
       }
 
-      maskRegion(region, watermarkParams.qrcode_backdrop_shape);
+      if (alphaSource) {
+        const offsetX = x1 - Math.round(position.x);
+        const offsetY = y1 - Math.round(position.y);
+        maskRegionFromAlpha(region, alphaSource, offsetX, offsetY);
+      } else {
+        maskRegion(region, watermarkParams.qrcode_backdrop_shape);
+      }
+
       watermark(uploadImage, region, BigInt(x1), BigInt(y1));
       region.free();
     }
@@ -823,6 +870,7 @@ async function applyWatermark(event) {
 
   uploadImage.free();
   watermarkImage.free();
+  qrMaskImage?.free();
 
   postMessage({ incomingSeq: seq, data: result, meta });
 }

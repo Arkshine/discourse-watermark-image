@@ -12,7 +12,7 @@ import {
   stringifyAxisConfig,
 } from "./qr-settings/axes";
 import { parseLogoConfig, stringifyLogoConfig } from "./qr-settings/logo";
-import { renderTextWatermark } from "./text-watermark";
+import { renderTextWatermark, resolveStaticFontFamily } from "./text-watermark";
 import { workerManager } from "./watermark/worker";
 
 export const WATERMARK_ALLOWED_EXTS = new Set([
@@ -291,6 +291,10 @@ export default class Watermark {
         resolved[key] = Number.isFinite(value) ? value : (spec.default ?? 0);
       }
     }
+
+    newSettings.qrcode_frame_font_family = resolved.frameText
+      ? resolveStaticFontFamily(resolved.frameFont)
+      : null;
 
     newSettings.qrcode_backdrop = resolved.backdrop ?? "solid";
     newSettings.qrcode_backdrop_shape = cfg.frame?.startsWith("circle")

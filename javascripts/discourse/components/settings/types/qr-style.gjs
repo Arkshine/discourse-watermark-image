@@ -33,6 +33,7 @@ import {
   randomLogo,
   randomStyle,
 } from "../../../lib/qr-settings/random";
+import { resolveStaticFontFamily } from "../../../lib/text-watermark";
 import { absoluteUploadURL, resolveIconSVG } from "../../../lib/watermark";
 import {
   activeLogoConfig,
@@ -42,9 +43,11 @@ import { renderQrThumbnail } from "../../../lib/watermark/worker";
 import WatermarkAxisGallery from "./axis-gallery";
 import WatermarkChoiceSegmented from "./choice-segmented";
 import WatermarkColorField from "./color-field";
+import WatermarkFontPicker from "./font-picker";
 import WatermarkSlider from "./slider";
 import WatermarkStepper from "./stepper";
 import WatermarkSwitch from "./switch";
+import WatermarkTextField from "./text-field";
 
 export const PREVIEW_STYLE_EVENT = "watermark:preview-style";
 
@@ -113,7 +116,7 @@ const COLOUR_GROUPS = [
     key: "eyes",
     params: ["eyeFrameColor", "eyeInColor", "finderColor", "finder"],
   },
-  { key: "frame", params: ["frameColor"] },
+  { key: "frame", params: ["frameColor", "frameTextColor"] },
   { key: "multicolor", match: (key) => /^color\d+$/.test(key) },
   { key: "advanced" },
 ];
@@ -193,6 +196,21 @@ const ParamField = <template>
         <WatermarkSwitch
           @value={{@field.value}}
           @setting={{@field.setting}}
+          @disabled={{@disabled}}
+          @changeValueCallback={{fn @onUpdate @field.key}}
+        />
+      {{/if}}
+      {{#if @field.isText}}
+        <WatermarkTextField
+          @value={{@field.value}}
+          @setting={{@field.setting}}
+          @disabled={{@disabled}}
+          @changeValueCallback={{fn @onUpdate @field.key}}
+        />
+      {{/if}}
+      {{#if @field.isFont}}
+        <WatermarkFontPicker
+          @value={{@field.value}}
           @disabled={{@disabled}}
           @changeValueCallback={{fn @onUpdate @field.key}}
         />
@@ -328,7 +346,8 @@ export default class WatermarkQrStyle extends Component {
         options: axis.catalogue.map((entry) => ({
           key: entry.key,
           label: entry.label,
-          icon: icon ? icon(entry.key) : null,
+          icon: icon ? icon(entry.icon ?? entry.key) : null,
+          separatorBefore: entry.separatorBefore,
         })),
         setting: {
           setting: axis.key,
@@ -526,6 +545,9 @@ export default class WatermarkQrStyle extends Component {
       qrcode_error_correction: 1,
       qrcode_size_slack: 0,
       qrcode_style_config: stringifyAxisConfig({ ...config, params }),
+      qrcode_frame_font_family: params.frameText
+        ? resolveStaticFontFamily(params.frameFont)
+        : null,
     };
 
     if (logo?.enabled) {
@@ -721,7 +743,8 @@ export default class WatermarkQrStyle extends Component {
       label: i18n(themePrefix(`settings_ui.axes.params.${paramKey}`), {
         defaultValue: spec.label,
       }),
-      full: spec.full ?? (wide || spec.type === "color"),
+      full:
+        spec.full ?? (wide || spec.type === "color" || spec.type === "text"),
       overridden: params[key] !== undefined,
       isColor: spec.type === "color",
       isStepper: isNumber && spec.control === "stepper",
@@ -729,6 +752,8 @@ export default class WatermarkQrStyle extends Component {
       isBoolean: spec.type === "boolean",
       isSegmented: isSelect && !isCombo,
       isCombo,
+      isText: spec.type === "text",
+      isFont: spec.type === "font",
       comboContent: options.map((option) => ({
         id: option,
         name: String(option).replaceAll("_", " ").replaceAll("-", " "),

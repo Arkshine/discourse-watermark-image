@@ -176,6 +176,11 @@ export default class WatermarkAxisGallery extends Component {
           {{on "focusout" this.clearPreview}}
         >
           {{#each this.options key="key" as |option|}}
+            {{#if option.separatorBefore}}
+              <div class="watermark-axis-gallery__separator">
+                <span class="watermark-axis-gallery__separator-badge">Aa</span>
+              </div>
+            {{/if}}
             <button
               type="button"
               class="watermark-axis-gallery__swatch

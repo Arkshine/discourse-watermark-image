@@ -25,6 +25,21 @@ function parseFontConfig(font) {
   }
 }
 
+export function resolveStaticFontFamily(font) {
+  const config = parseFontConfig(font);
+  const cssVar = CSS_FONT_VARS[config.key];
+
+  if (!cssVar) {
+    return null;
+  }
+
+  return (
+    getComputedStyle(document.documentElement)
+      .getPropertyValue(cssVar)
+      .trim() || "sans-serif"
+  );
+}
+
 function pickVariant(variants, weight) {
   return (
     variants.find(

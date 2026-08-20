@@ -156,7 +156,30 @@ export const FRAME_CATALOGUE = [
   { key: "circle-dashed-fine", label: "Fine dashed circle" },
   { key: "hexagon", label: "Hexagon" },
   { key: "circle-sketch", label: "Sketched circle" },
+  {
+    key: "band-bottom",
+    label: "Caption band (bottom, round)",
+    separatorBefore: true,
+  },
+  { key: "band-top", label: "Caption band (top, round)" },
+  { key: "band-bottom-square", label: "Caption band (bottom, square)" },
+  { key: "band-top-square", label: "Caption band (top, square)" },
+  { key: "ribbon-bottom", label: "Caption ribbon (bottom)" },
+  { key: "ribbon-top", label: "Caption ribbon (top)" },
+  { key: "bubble-bottom", label: "Caption bubble (bottom)" },
+  { key: "bubble-top", label: "Caption bubble (top)" },
 ];
+
+export const LABEL_FRAMES = new Set([
+  "band-bottom",
+  "band-top",
+  "band-bottom-square",
+  "band-top-square",
+  "ribbon-bottom",
+  "ribbon-top",
+  "bubble-bottom",
+  "bubble-top",
+]);
 
 export const AXES = [
   {
@@ -864,6 +887,26 @@ export const SHARED_PARAMS = {
     max: 1,
     step: 0.05,
     default: 1,
+  },
+  frameText: {
+    label: "Caption text",
+    type: "text",
+    default: "Caption",
+    visible: (config) => LABEL_FRAMES.has(config.frame),
+  },
+  frameFont: {
+    label: "Caption font",
+    type: "font",
+    default: '{"key":"site"}',
+    visible: (config, valueOf) =>
+      LABEL_FRAMES.has(config.frame) && Boolean(valueOf("frameText")),
+  },
+  frameTextColor: {
+    label: "Caption colour",
+    type: "color",
+    inheritParam: "foreground",
+    visible: (config, valueOf) =>
+      LABEL_FRAMES.has(config.frame) && Boolean(valueOf("frameText")),
   },
 };
 

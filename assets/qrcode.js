@@ -107,7 +107,7 @@ async function renderQrCode(settings, size) {
     );
   }
 
-  return applyLogo(png, settings, {
+  const withLogo = await applyLogo(png, settings, {
     background,
     foreground,
     qrInsetRatio,
@@ -116,6 +116,8 @@ async function renderQrCode(settings, size) {
     canvasSize,
     margin: frameMargin,
   });
+
+  return applyFrameLabel(withLogo, settings, params, cfg.frame);
 }
 
 const LOGO_DEFAULTS = {
@@ -253,6 +255,220 @@ async function applyLogo(
   const blob = await canvas.convertToBlob({ type: "image/png" });
 
   return new Uint8Array(await blob.arrayBuffer());
+}
+
+const LABEL_FONT_RATIO = 0.55;
+const LABEL_PADDING_RATIO = 0.12;
+const RIBBON_STROKE_WIDTH = 0.4;
+
+const loadedFrameFonts = new Set();
+
+function pickFrameFontVariant(variants) {
+  return (
+    variants.find(
+      (v) => String(v.weight) === "400" && v.url.endsWith(".woff2")
+    ) ??
+    variants.find((v) => String(v.weight) === "400") ??
+    variants[0]
+  );
+}
+
+async function resolveFrameFontFamily(settings, params) {
+  if (settings.qrcode_frame_font_family) {
+    return settings.qrcode_frame_font_family;
+  }
+
+  let config;
+  try {
+    config = JSON.parse(params.frameFont ?? "{}");
+  } catch {
+    config = {};
+  }
+
+  const variant = pickFrameFontVariant(config.variants ?? []);
+
+  if (!variant) {
+    return "sans-serif";
+  }
+
+  const family = `watermark-frame-font-${config.key}`;
+
+  if (!loadedFrameFonts.has(family)) {
+    try {
+      const face = new FontFace(family, `url("${variant.url}")`);
+      await face.load();
+      self.fonts.add(face);
+      loadedFrameFonts.add(family);
+    } catch {
+      return "sans-serif";
+    }
+  }
+
+  return family;
+}
+
+const LABEL_SHAPES = {
+  "band-bottom": {
+    path: "M22.7,0H1.3C0.6,0,0,0.6,0,1.3v25.4C0,27.4,0.6,28,1.3,28h21.4c0.7,0,1.3-0.6,1.3-1.3V1.3C24,0.6,23.4,0,22.7,0z M23,22c0,0.6-0.4,1-1,1H2c-0.6,0-1-0.4-1-1V2c0-0.6,0.4-1,1-1h20c0.6,0,1,0.4,1,1V22z",
+    extentHeight: 28,
+    hole: [1, 1, 23, 23],
+    position: "bottom",
+  },
+  "band-top": {
+    path: "M1.3,28L22.6,28c0.7,0,1.3-0.6,1.3-1.3L24,1.4c0-0.7-0.6-1.3-1.3-1.3L1.4,0C0.7,0,0.1,0.6,0,1.3L0,26.6C-0.1,27.4,0.5,28,1.3,28z M1,6c0-0.6,0.5-1,1-1L22,5c0.6,0,1,0.5,1,1L23,26c0,0.6-0.5,1-1,1L2,27c-0.6,0-1-0.5-1-1L1,6z",
+    extentHeight: 28,
+    hole: [1, 5, 23, 27],
+    position: "top",
+  },
+  "band-bottom-square": {
+    path: "M24,28H0V0h24V28z M23,0.94H1v22h22V0.94z",
+    extentHeight: 28,
+    hole: [1, 0.94, 23, 22.94],
+    position: "bottom",
+  },
+  "band-top-square": {
+    path: "M0,0h24v28H0V0z M1,27.06h22v-22H1V27.06z",
+    extentHeight: 28,
+    hole: [1, 5.06, 23, 27.06],
+    position: "top",
+  },
+  "ribbon-bottom": {
+    path: "M24,21h-1.7V1.7H1.7V21H0l1,2l-1,2h1v2h22v-2h1l-1-2L24,21z M2,2h20v19v1H2v-1V2z",
+    extentHeight: 27,
+    hole: [2, 2, 22, 22],
+    position: "bottom",
+    stroke: true,
+  },
+  "ribbon-top": {
+    path: "M0,6h1.7v19.3h20.7V6H24l-1-2l1-2h-1V0H1v2H0l1,2L0,6z M22,25H2V6V5h20v1V25z",
+    extentHeight: 25.3,
+    hole: [2, 5, 22, 25],
+    position: "top",
+    stroke: true,
+  },
+  "bubble-bottom": {
+    path: "M22.7,0H1.3C0.6,0,0,0.6,0,1.3v21.4c0,0.7,0.6,1.3,1.3,1.3h21.4c0.7,0,1.3-0.6,1.3-1.3V1.3C24,0.6,23.4,0,22.7,0z M23,22c0,0.6-0.4,1-1,1H2c-0.6,0-1-0.4-1-1V2c0-0.6,0.4-1,1-1h20c0.6,0,1,0.4,1,1V22z M1,30H23C23.6,30,24,29.6,24,29v-3c0,-0.6,-0.4,-1,-1,-1h-9.5l-1.5,-1.5L10.5,25H1c-0.6,0,-1,0.4,-1,1V29C0,29.6,0.4,30,1,30z",
+    extentHeight: 30,
+    hole: [1, 1, 23, 23],
+    position: "bottom",
+    textBand: [25, 30],
+  },
+  "bubble-top": {
+    path: "M22.7,6H1.3C0.6,6,0,6.6,0,7.3v21.4c0,0.7,0.6,1.3,1.3,1.3h21.4c0.7,0,1.3-0.6,1.3-1.3V7.3C24,6.6,23.4,6,22.7,6z M23,28c0,0.6-0.4,1-1,1H2c-0.6,0-1-0.4-1-1V8c0-0.6,0.4-1,1-1h20c0.6,0,1,0.4,1,1V28z M23,0H1C0.4,0,0,0.4,0,1v3c0,0.6,0.4,1,1,1h9.5l1.5,1.5L13.5,5H23c0.6,0,1-0.4,1-1V1C24,0.4,23.6,0,23,0z",
+    extentHeight: 30,
+    hole: [1, 7, 23, 29],
+    position: "top",
+    textBand: [0, 5],
+  },
+};
+
+const LABEL_FRAMES = new Set(Object.keys(LABEL_SHAPES));
+
+function planLabelLayout(frameKey, qrWidth) {
+  const shapeDef = LABEL_SHAPES[frameKey];
+  const top = shapeDef.position === "top";
+  const [holeX0, holeY0, holeX1, holeY1] = shapeDef.hole;
+  const scale = qrWidth / (holeX1 - holeX0);
+  const [textBandTop, textBandBottom] =
+    shapeDef.textBand ?? (top ? [0, holeY0] : [holeY1, shapeDef.extentHeight]);
+
+  return {
+    canvasWidth: Math.round(24 * scale),
+    canvasHeight: Math.round(shapeDef.extentHeight * scale),
+    qrX: Math.round(holeX0 * scale),
+    qrY: Math.round(holeY0 * scale),
+    bandCenterY: Math.round(((textBandTop + textBandBottom) / 2) * scale),
+    fontSize: Math.round(
+      (textBandBottom - textBandTop) * scale * LABEL_FONT_RATIO
+    ),
+    shapeDef,
+    scale,
+    defaultTextColor: "background",
+  };
+}
+
+async function buildLabelSilhouetteMask(
+  layout,
+  captionPath,
+  qrWidth,
+  qrHeight
+) {
+  const canvas = new OffscreenCanvas(layout.canvasWidth, layout.canvasHeight);
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#000000";
+  ctx.setTransform(layout.scale, 0, 0, layout.scale, 0, 0);
+  ctx.fill(captionPath);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillRect(layout.qrX, layout.qrY, qrWidth, qrHeight);
+
+  const blob = await canvas.convertToBlob({ type: "image/png" });
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+async function applyFrameLabel(png, settings, params, frameKey) {
+  const text = (params.frameText ?? "").trim();
+
+  if (!text || !LABEL_FRAMES.has(frameKey)) {
+    return { png, mask: null };
+  }
+
+  const qrBitmap = await createImageBitmap(
+    new Blob([png], { type: "image/png" })
+  );
+  const layout = planLabelLayout(frameKey, qrBitmap.width);
+
+  const canvas = new OffscreenCanvas(layout.canvasWidth, layout.canvasHeight);
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = solidColor(params.frameColor ?? params.foreground, "#000000");
+  ctx.setTransform(layout.scale, 0, 0, layout.scale, 0, 0);
+  const captionPath = new Path2D(layout.shapeDef.path);
+  ctx.fill(captionPath);
+
+  if (layout.shapeDef.stroke) {
+    ctx.lineWidth = RIBBON_STROKE_WIDTH;
+    ctx.strokeStyle = solidColor(params.foreground, "#000000");
+    ctx.stroke(captionPath);
+  }
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+  const mask = await buildLabelSilhouetteMask(
+    layout,
+    captionPath,
+    qrBitmap.width,
+    qrBitmap.height
+  );
+
+  ctx.drawImage(qrBitmap, layout.qrX, layout.qrY);
+
+  const family = await resolveFrameFontFamily(settings, params);
+  ctx.font = `${layout.fontSize}px ${family}`;
+  ctx.fillStyle = solidColor(
+    params.frameTextColor ?? params[layout.defaultTextColor],
+    "#000000"
+  );
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const padding = canvas.width * LABEL_PADDING_RATIO;
+  const maxWidth = canvas.width - padding * 2;
+  let label = text;
+
+  while (label.length > 1 && ctx.measureText(label).width > maxWidth) {
+    label = label.slice(0, -1);
+  }
+
+  if (label !== text) {
+    label = `${label.slice(0, -1)}…`;
+  }
+
+  ctx.fillText(label, canvas.width / 2, layout.bandCenterY);
+
+  const blob = await canvas.convertToBlob({ type: "image/png" });
+
+  return { png: new Uint8Array(await blob.arrayBuffer()), mask };
 }
 
 // Framework-free styled SVG renderers for QR codes, adapted from zhengkyl/qrframe presets
@@ -1518,6 +1734,15 @@ const FRAMES = {
     },
   },
 };
+
+FRAMES["band-bottom"] = FRAMES.none;
+FRAMES["band-top"] = FRAMES.none;
+FRAMES["band-bottom-square"] = FRAMES.none;
+FRAMES["band-top-square"] = FRAMES.none;
+FRAMES["ribbon-bottom"] = FRAMES.none;
+FRAMES["ribbon-top"] = FRAMES.none;
+FRAMES["bubble-bottom"] = FRAMES.none;
+FRAMES["bubble-top"] = FRAMES.none;
 
 const ICON_UNIT = 24;
 const ICON_FRAMES = {
