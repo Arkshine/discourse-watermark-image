@@ -1,5 +1,22 @@
 import { AUTO_GROUPS } from "discourse/lib/constants";
 
+export const PROFILE_META_KEYS = new Set([
+  "name",
+  "enabled",
+  "categories",
+  "groups",
+  "user_in_groups",
+  "tags",
+]);
+
+export function resolveComposerTags(composerModel) {
+  const tags = composerModel.tags?.length
+    ? composerModel.tags
+    : (composerModel.topic?.tags ?? []);
+
+  return tags.map((tag) => (typeof tag === "string" ? tag : tag.slug));
+}
+
 export default function matchProfile(profiles, composerModel, currentUser) {
   if (!Array.isArray(profiles)) {
     return null;
@@ -14,6 +31,15 @@ export default function matchProfile(profiles, composerModel, currentUser) {
       const categories = profile.categories ?? [];
 
       if (categories.length && !categories.includes(composerModel.categoryId)) {
+        return false;
+      }
+
+      const tags = profile.tags ?? [];
+
+      if (
+        tags.length &&
+        !resolveComposerTags(composerModel).some((slug) => tags.includes(slug))
+      ) {
         return false;
       }
 

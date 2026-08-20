@@ -9,6 +9,7 @@ import { bind } from "discourse/lib/decorators";
 import { i18n } from "discourse-i18n";
 import SchemaTabs from "../../components/settings/schema-tabs";
 import WatermarkPreview from "../../components/watermark-preview";
+import { PROFILE_META_KEYS } from "../../lib/match-profile";
 import { PROFILE_CHANGED_EVENT } from "../../lib/watermark/active-state";
 
 const SETTING_NAME = "watermark_profiles";
@@ -22,14 +23,6 @@ const PROFILE_TABS = [
   { id: "placement" },
   { id: "rules" },
 ];
-
-const PROFILE_META_KEYS = new Set([
-  "name",
-  "enabled",
-  "categories",
-  "groups",
-  "user_in_groups",
-]);
 
 function profileToSettings(profile) {
   const settings = {};

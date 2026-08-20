@@ -23,7 +23,10 @@ import WatermarkStepper from "../components/settings/types/stepper";
 import WatermarkSwitch from "../components/settings/types/switch";
 import WatermarkTextStyle from "../components/settings/types/text-style";
 import WatermarkTextarea from "../components/settings/types/textarea";
-import matchProfile from "../lib/match-profile";
+import matchProfile, {
+  PROFILE_META_KEYS,
+  resolveComposerTags,
+} from "../lib/match-profile";
 import { imageDataToFile } from "../lib/media-watermark-utils";
 import { imagesExtensions } from "../lib/uploads";
 import UppyMediaWatermark from "../lib/uppy-media-watermark-plugin";
@@ -34,14 +37,6 @@ import {
   publishActiveLogoConfig,
   publishActiveProfile,
 } from "../lib/watermark/active-state";
-
-const PROFILE_META_KEYS = new Set([
-  "name",
-  "enabled",
-  "categories",
-  "groups",
-  "user_in_groups",
-]);
 
 const PROFILE_CONFIG_KEYS = [
   "source",
@@ -73,7 +68,7 @@ const PROFILE_CONFIG_KEYS = [
 ];
 
 function flatProfileSeed() {
-  const seed = { enabled: true };
+  const seed = { enabled: true, groups: [AUTO_GROUPS.logged_in_users.id] };
 
   for (const key of PROFILE_CONFIG_KEYS) {
     seed[key] = settings[`watermark_${key}`];
@@ -253,6 +248,7 @@ class WatermarkInit {
               composerModel,
               api.getCurrentUser()
             );
+
             const overwriteOptions = profileToOverwriteOptions(profile);
             const merged = { ...settings, ...overwriteOptions };
 
@@ -278,6 +274,21 @@ class WatermarkInit {
                   .includes(composerModel.categoryId)
               ) {
                 return null;
+              }
+
+              if (settings.watermark_tags) {
+                const requiredTags = settings.watermark_tags
+                  .split("|")
+                  .filter(Boolean);
+
+                if (
+                  requiredTags.length &&
+                  !resolveComposerTags(composerModel).some((slug) =>
+                    requiredTags.includes(slug)
+                  )
+                ) {
+                  return null;
+                }
               }
 
               if (Object.hasOwn(settings, "user_in_watermark_groups")) {

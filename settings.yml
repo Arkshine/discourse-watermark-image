@@ -21,6 +21,8 @@ watermark_profiles:
       groups:
         type: groups
         resolve_group_membership: true
+      tags:
+        type: tags
       source:
         type: enum
         choices: [image, qrcode, text]
@@ -295,6 +297,11 @@ watermark_groups:
   resolve_group_membership: true
   disallowed_groups: "4"
   default: "5"
+
+watermark_tags:
+  type: list
+  list_type: tag
+  default: ""
 
 watermark_skip_small_images:
   type: bool
