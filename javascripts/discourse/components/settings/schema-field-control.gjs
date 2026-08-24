@@ -2,7 +2,6 @@ import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import didUpdate from "@ember/render-modifiers/modifiers/did-update";
-import FieldInputDescription from "discourse/admin/components/schema-setting/field-input-description";
 import WatermarkBlendPicker from "./types/blend-picker";
 import WatermarkChoiceSegmented from "./types/choice-segmented";
 import WatermarkColorField from "./types/color-field";
@@ -96,7 +95,7 @@ export default class SchemaFieldControl extends Component {
 
       {{#if @description}}
         <div class="schema-field__input-supporting-text">
-          <FieldInputDescription @description={{@description}} />
+          <div class="schema-field__input-description">{{@description}}</div>
         </div>
       {{/if}}
     </div>

@@ -586,6 +586,18 @@ function hexToRgb(hex) {
   );
 }
 
+function isBelowMinDimensions(width, height, params) {
+  if (!params.skip_small_images || !params.min_image_dimensions) {
+    return false;
+  }
+
+  const [minWidth, minHeight] = params.min_image_dimensions
+    .split("x")
+    .map(Number);
+
+  return width < minWidth || (minHeight && height < minHeight);
+}
+
 async function applyWatermark(event) {
   const { seq, params } = event.data;
   const { upload: uploadParams, watermark: watermarkParams } = params;
@@ -610,23 +622,14 @@ async function applyWatermark(event) {
   const uploadWidth = uploadImage.get_width();
   const uploadHeight = uploadImage.get_height();
 
-  if (
-    watermarkParams.skip_small_images &&
-    watermarkParams.min_image_dimensions
-  ) {
-    const [minWidth, minHeight] = watermarkParams.min_image_dimensions
-      .split("x")
-      .map(Number);
+  if (isBelowMinDimensions(uploadWidth, uploadHeight, watermarkParams)) {
+    postMessage({
+      incomingSeq: seq,
+      data: null,
+      reason: "dimensions_too_small",
+    });
 
-    if (uploadWidth < minWidth || (minHeight && uploadHeight < minHeight)) {
-      postMessage({
-        incomingSeq: seq,
-        data: null,
-        reason: "dimensions_too_small",
-      });
-
-      return;
-    }
+    return;
   }
 
   let watermarkImage;

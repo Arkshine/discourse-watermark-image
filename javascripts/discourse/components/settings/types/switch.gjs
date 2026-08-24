@@ -1,7 +1,7 @@
 import Component from "@glimmer/component";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
-import Description from "discourse/admin/components/site-settings/description";
+import { trustHTML } from "@ember/template";
 import DToggleSwitch from "discourse/ui-kit/d-toggle-switch";
 
 export default class WatermarkSwitch extends Component {
@@ -19,7 +19,7 @@ export default class WatermarkSwitch extends Component {
       <DToggleSwitch @state={{this.state}} {{on "click" this.toggle}} />
 
       {{#if @setting.description}}
-        <Description @description={{@setting.description}} />
+        <div class="desc">{{trustHTML @setting.description}}</div>
       {{/if}}
     </div>
   </template>
