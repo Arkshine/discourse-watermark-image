@@ -2,7 +2,6 @@ import { action } from "@ember/object";
 import { setOwner } from "@ember/owner";
 import { service } from "@ember/service";
 import { AUTO_GROUPS } from "discourse/lib/constants";
-import { bind } from "discourse/lib/decorators";
 import { withPluginApi } from "discourse/lib/plugin-api";
 import { isImage } from "discourse/lib/uploads";
 import { i18n } from "discourse-i18n";
@@ -358,11 +357,15 @@ class WatermarkInit {
             @service currentUser;
             @service siteSettings;
 
-            @bind
-            setupEditor(textManipulation) {
-              const result = super.setupEditor(textManipulation);
+            @action
+            _composerEditorInitEditor(elem) {
+              const result = super._composerEditorInitEditor(elem);
 
               const { uppyInstance } = this.uppyComposerUpload.uppyWrapper;
+              if (!uppyInstance) {
+                return result;
+              }
+
               const originalHandler = uppyInstance.opts.onBeforeFileAdded;
               uppyInstance.opts.onBeforeFileAdded = (currentFile) => {
                 if (
