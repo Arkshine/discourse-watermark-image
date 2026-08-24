@@ -75,6 +75,10 @@ export default class WatermarkSchemaPreview extends Component {
   @tracked tabsMount = null;
   @tracked fieldsContainer = null;
 
+  resetActiveProfile = modifier(() => {
+    this.activeProfile = this.initialProfile;
+  });
+
   captureTitleMount = modifier(() => {
     let mount;
 
@@ -166,6 +170,7 @@ export default class WatermarkSchemaPreview extends Component {
     {{#if this.shouldDisplay}}
       <span
         class="watermark-schema-preview"
+        {{this.resetActiveProfile}}
         {{this.captureTitleMount}}
         {{this.captureTabsMount}}
       ></span>
