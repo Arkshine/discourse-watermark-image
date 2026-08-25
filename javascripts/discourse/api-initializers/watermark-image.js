@@ -22,10 +22,6 @@ import WatermarkStepper from "../components/settings/types/stepper";
 import WatermarkSwitch from "../components/settings/types/switch";
 import WatermarkTextStyle from "../components/settings/types/text-style";
 import WatermarkTextarea from "../components/settings/types/textarea";
-import matchProfile, {
-  PROFILE_META_KEYS,
-  resolveComposerTags,
-} from "../lib/match-profile";
 import { imageDataToFile } from "../lib/media-watermark-utils";
 import { imagesExtensions } from "../lib/uploads";
 import UppyMediaWatermark from "../lib/uppy-media-watermark-plugin";
@@ -36,35 +32,13 @@ import {
   publishActiveLogoConfig,
   publishActiveProfile,
 } from "../lib/watermark/active-state";
-
-const PROFILE_CONFIG_KEYS = [
-  "source",
-  "qrcode_text",
-  "qrcode_color",
-  "qrcode_background_color",
-  "qrcode_quiet_zone",
-  "qrcode_error_correction",
-  "qrcode_style_config",
-  "qrcode_halftone_image",
-  "qrcode_logo_config",
-  "qrcode_logo_image",
-  "text",
-  "text_style",
-  "position",
-  "margin_x",
-  "margin_y",
-  "opacity",
-  "size_mode",
-  "relative_width",
-  "absolute_scale",
-  "max_size",
-  "rotate",
-  "pattern",
-  "pattern_allow_partial",
-  "pattern_max_count",
-  "pattern_spacing",
-  "blend_mode",
-];
+import {
+  buildTopicData,
+  PROFILE_CONFIG_KEYS,
+  profileSignature,
+  resolveProfile,
+} from "../lib/watermark/profile";
+import richEditorSwapExtension from "../lib/watermark/rich-editor-swap";
 
 function flatProfileSeed() {
   const seed = { enabled: true, groups: [AUTO_GROUPS.logged_in_users.id] };
@@ -76,28 +50,16 @@ function flatProfileSeed() {
   return seed;
 }
 
-function profileToOverwriteOptions(profile) {
-  const options = {};
-
-  if (profile) {
-    for (const [key, value] of Object.entries(profile)) {
-      if (PROFILE_META_KEYS.has(key) || value === "" || value == null) {
-        continue;
-      }
-
-      options[`watermark_${key}`] = value;
-    }
-  }
-
-  return options;
-}
-
 class WatermarkInit {
   @service currentUser;
+  @service appEvents;
+  @service watermarkReprocess;
 
   constructor(owner, api) {
     setOwner(this, owner);
     this.api = api;
+
+    api.registerRichEditorExtension(richEditorSwapExtension);
 
     const customControls = {
       watermark_default_enabled: WatermarkSwitch,
@@ -242,90 +204,25 @@ class WatermarkInit {
               return null;
             }
 
-            const profile = matchProfile(
-              settings.watermark_profiles,
+            const resolved = resolveProfile(
               composerModel,
               api.getCurrentUser()
             );
 
-            const overwriteOptions = profileToOverwriteOptions(profile);
-            const merged = { ...settings, ...overwriteOptions };
+            this.watermarkReprocess.trackUpload({
+              fileName: file.name,
+              fileType: file.type,
+              originalFile: file.data,
+              signature: profileSignature(resolved),
+            });
 
-            const source = merged.watermark_source;
-
-            if (
-              (source === "image" && !merged.watermark_image) ||
-              (source === "text" && !merged.watermark_text)
-            ) {
+            if (!resolved.apply) {
               return null;
             }
 
-            if (!profile) {
-              if (!settings.watermark_default_enabled) {
-                return null;
-              }
-
-              if (
-                settings.watermark_categories &&
-                !settings.watermark_categories
-                  .split("|")
-                  .map((c) => Number(c))
-                  .includes(composerModel.categoryId)
-              ) {
-                return null;
-              }
-
-              if (settings.watermark_tags) {
-                const requiredTags = settings.watermark_tags
-                  .split("|")
-                  .filter(Boolean);
-
-                if (
-                  requiredTags.length &&
-                  !resolveComposerTags(composerModel).some((slug) =>
-                    requiredTags.includes(slug)
-                  )
-                ) {
-                  return null;
-                }
-              }
-
-              if (Object.hasOwn(settings, "user_in_watermark_groups")) {
-                if (!settings.user_in_watermark_groups) {
-                  return null;
-                }
-              }
-              // DEPRECATED: Once user_in_ is fully supported, remove this.
-              else if (settings.watermark_groups?.length) {
-                const requiredGroups = settings.watermark_groups
-                  .split("|")
-                  .filter(Boolean)
-                  .map((group) => Number(group));
-
-                if (
-                  !requiredGroups.includes(AUTO_GROUPS.everyone.id) &&
-                  !this.currentUser.groups
-                    .map((group) => group.id)
-                    .some((group) => requiredGroups.includes(group))
-                ) {
-                  return null;
-                }
-              }
-            }
-
-            let topicData = null;
-
-            if (composerModel.topic) {
-              topicData = {
-                id: composerModel.topic?.id,
-                title: composerModel.topic?.title,
-                url: composerModel.topic?.url,
-              };
-            }
-
             const watermark = new Watermark(owner, file.data, {
-              topic: topicData,
-              overwriteOptions,
+              topic: buildTopicData(composerModel),
+              overwriteOptions: resolved.overwriteOptions,
             });
 
             const { data: imageData } = await watermark.process();
