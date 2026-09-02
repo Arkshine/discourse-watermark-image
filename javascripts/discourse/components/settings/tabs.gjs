@@ -40,6 +40,7 @@ export default class WatermarkSettingsTabs extends Component {
         {{#each @tabs as |tab|}}
           <button
             type="button"
+            data-tab-id={{tab.id}}
             class="watermark-tabs__tab
               {{if (eq this.activeTab tab.id) 'active'}}"
             aria-current={{if (eq this.activeTab tab.id) "true"}}

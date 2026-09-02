@@ -12,6 +12,7 @@ const SETTINGS_TABS = [
   { id: "appearance" },
   { id: "placement" },
   { id: "rules" },
+  { id: "general" },
 ];
 
 export default class PreviewWatermark extends Component {
@@ -70,7 +71,7 @@ export default class PreviewWatermark extends Component {
       currentRoute.name === "adminCustomizeThemes.show.index" &&
       currentRoute.attributes.component &&
       currentRoute.attributes.theme_fields.some((tf) =>
-        tf.name.endsWith("/watermark-image.js")
+        tf.name.endsWith("/watermark-image.gjs")
       )
     );
   }

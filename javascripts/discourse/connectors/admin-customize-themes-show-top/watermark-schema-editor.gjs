@@ -151,7 +151,7 @@ export default class WatermarkSchemaPreview extends Component {
       route?.name === "adminCustomizeThemes.show.schema" &&
       route.params?.setting_name === SETTING_NAME &&
       this.args.theme?.theme_fields?.some((tf) =>
-        tf.name.endsWith("/watermark-image.js")
+        tf.name.endsWith("/watermark-image.gjs")
       )
     );
   }

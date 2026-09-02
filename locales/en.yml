@@ -170,6 +170,7 @@ en:
       watermark_categories: Choose which categories the watermark should be applied to.
       watermark_groups: Choose which groups the watermark should be applied to.
       watermark_tags: Choose which tags the watermark should be applied to.
+      watermark_manual_toggle_groups: Choose which groups can manually toggle the watermark on/off for an image they've uploaded in the composer.
       watermark_skip_small_images: Skip watermarking if image is below minimum dimensions.
       watermark_min_image_dimensions: Minimum dimensions required to apply watermark (width x height).
       watermark_allow_non_supported_uploads: Allow image uploads to continue even when the format is not supported by the watermark library.
@@ -187,6 +188,12 @@ en:
     errors:
       upload_not_authorized: "Sorry, the file you are trying to upload doesn't support watermarking (authorized extensions: %{authorized_extensions})."
       watermark_failed: "Sorry, this image could not be watermarked and the upload was blocked. <br>Please try again, and contact the site administrator if the problem persists."
+    manual_toggle:
+      applied: "Watermark applied to %{fileName}. Click to remove."
+      removed: "Watermark removed from %{fileName}. Click to apply."
+      unavailable: "This image was uploaded in a previous session and can't be changed here."
+      toolbar:
+        toggle: "Toggle watermark"
   settings_ui:
     tabs_label: Watermark settings
     tabs:
@@ -194,6 +201,7 @@ en:
       appearance: Appearance
       placement: Placement
       rules: Conditions
+      general: General
     source:
       image: Image
       qrcode: QR code

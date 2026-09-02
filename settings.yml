@@ -303,6 +303,12 @@ watermark_tags:
   list_type: tag
   default: ""
 
+watermark_manual_toggle_groups:
+  type: list
+  list_type: group
+  resolve_group_membership: true
+  default: ""
+
 watermark_skip_small_images:
   type: bool
   default: false

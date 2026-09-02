@@ -1,6 +1,7 @@
 import { action } from "@ember/object";
 import { setOwner } from "@ember/owner";
 import { service } from "@ember/service";
+import { lookupCachedUploadUrl } from "pretty-text/upload-short-url";
 import { AUTO_GROUPS } from "discourse/lib/constants";
 import { withPluginApi } from "discourse/lib/plugin-api";
 import { isImage } from "discourse/lib/uploads";
@@ -22,6 +23,7 @@ import WatermarkStepper from "../components/settings/types/stepper";
 import WatermarkSwitch from "../components/settings/types/switch";
 import WatermarkTextStyle from "../components/settings/types/text-style";
 import WatermarkTextarea from "../components/settings/types/textarea";
+import WatermarkManualToggle from "../components/watermark-manual-toggle";
 import { imageDataToFile } from "../lib/media-watermark-utils";
 import { imagesExtensions } from "../lib/uploads";
 import UppyMediaWatermark from "../lib/uppy-media-watermark-plugin";
@@ -38,6 +40,7 @@ import {
   profileSignature,
   resolveProfile,
 } from "../lib/watermark/profile";
+import manualToggleRichEditorExtension from "../lib/watermark/rich-editor-manual-toggle";
 import richEditorSwapExtension from "../lib/watermark/rich-editor-swap";
 
 function flatProfileSeed() {
@@ -54,12 +57,14 @@ class WatermarkInit {
   @service currentUser;
   @service appEvents;
   @service watermarkReprocess;
+  @service composer;
 
   constructor(owner, api) {
     setOwner(this, owner);
     this.api = api;
 
     api.registerRichEditorExtension(richEditorSwapExtension);
+    api.registerRichEditorExtension(manualToggleRichEditorExtension);
 
     const customControls = {
       watermark_default_enabled: WatermarkSwitch,
@@ -297,6 +302,68 @@ class WatermarkInit {
           }
       );
     }
+
+    if (settings.user_in_watermark_manual_toggle_groups) {
+      api.decorateCookedElement((element, helper) => {
+        if (!element.classList.contains("d-editor-preview")) {
+          return;
+        }
+
+        const trackedShortUrls = new Set(
+          this.watermarkReprocess
+            .imagesFor(this.composer.model)
+            .map((image) => image.shortUrl)
+        );
+
+        if (!trackedShortUrls.size) {
+          return;
+        }
+
+        const urlToShortUrl = new Map();
+        for (const shortUrl of trackedShortUrls) {
+          const { url } = lookupCachedUploadUrl(shortUrl);
+          if (url) {
+            urlToShortUrl.set(url, shortUrl);
+          }
+        }
+
+        const ordinalByShortUrl = new Map();
+
+        element.querySelectorAll("img").forEach((img) => {
+          const shortUrl = this.shortUrlFor(
+            img,
+            trackedShortUrls,
+            urlToShortUrl
+          );
+
+          if (!shortUrl) {
+            return;
+          }
+
+          const ordinal = ordinalByShortUrl.get(shortUrl) ?? 0;
+          ordinalByShortUrl.set(shortUrl, ordinal + 1);
+
+          const wrapper = img.closest(".image-wrapper") ?? img.parentElement;
+          const toolbar = <template>
+            <WatermarkManualToggle
+              @shortUrl={{@data.shortUrl}}
+              @ordinal={{@data.ordinal}}
+              @context="preview"
+            />
+          </template>;
+          helper.renderGlimmer(wrapper, toolbar, { shortUrl, ordinal });
+        });
+      });
+    }
+  }
+
+  shortUrlFor(img, trackedShortUrls, urlToShortUrl) {
+    const origSrc = img.dataset.origSrc;
+    if (origSrc && trackedShortUrls.has(origSrc)) {
+      return origSrc;
+    }
+
+    return urlToShortUrl.get(img.getAttribute("src"));
   }
 }
 
