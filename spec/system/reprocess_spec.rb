@@ -8,6 +8,12 @@ RSpec.describe "Watermark - reprocess", system: true do
   let(:composer) { PageObjects::Components::Composer.new }
   let(:fixture_path) { file_from_fixtures("logo.png", "images").path }
 
+  def upload_and_wait
+    attach_file("file-uploader", fixture_path, make_visible: true)
+    # Watermarking runs in a worker before upload; slow CI can exceed the default 4s wait.
+    try_until_success(timeout: 15) { expect(composer).to have_no_in_progress_uploads }
+  end
+
   context "when category changes" do
     fab!(:matched_category, :category)
     fab!(:other_category, :category)
@@ -34,8 +40,7 @@ RSpec.describe "Watermark - reprocess", system: true do
       topic_page.open_new_topic
       composer.fill_title("Reprocess on category change test")
 
-      attach_file("file-uploader", fixture_path, make_visible: true)
-      expect(composer).to have_no_in_progress_uploads
+      upload_and_wait
       expect(composer.preview).to have_css(".image-wrapper")
 
       reply_field = find("textarea.d-editor-input", visible: :all)
@@ -101,8 +106,7 @@ RSpec.describe "Watermark - reprocess", system: true do
       topic_page.open_new_topic
       composer.fill_title("Reprocess on tags change test")
 
-      attach_file("file-uploader", fixture_path, make_visible: true)
-      expect(composer).to have_no_in_progress_uploads
+      upload_and_wait
       expect(composer.preview).to have_css(".image-wrapper")
 
       reply_before_tag = find("textarea.d-editor-input", visible: :all).value
@@ -159,8 +163,7 @@ RSpec.describe "Watermark - reprocess", system: true do
       composer.select_action_by_id("reply_as_new_topic")
       composer.fill_title("Reprocess survives action switch test")
 
-      attach_file("file-uploader", fixture_path, make_visible: true)
-      expect(composer).to have_no_in_progress_uploads
+      upload_and_wait
       expect(composer.preview).to have_css(".image-wrapper")
 
       reply_field = find("textarea.d-editor-input", visible: :all)
@@ -219,8 +222,7 @@ RSpec.describe "Watermark - reprocess", system: true do
       composer.fill_title("Manual toggle test")
       composer.switch_category(matched_category.name)
 
-      attach_file("file-uploader", fixture_path, make_visible: true)
-      expect(composer).to have_no_in_progress_uploads
+      upload_and_wait
       expect(composer.preview).to have_css(".image-wrapper")
 
       toggle_button = find(".watermark-manual-toolbar__toggle")
@@ -251,8 +253,7 @@ RSpec.describe "Watermark - reprocess", system: true do
       composer.fill_title("Manual toggle RTE test")
       composer.switch_category(matched_category.name)
 
-      attach_file("file-uploader", fixture_path, make_visible: true)
-      expect(composer).to have_no_in_progress_uploads
+      upload_and_wait
 
       composer.toggle_rich_editor
       expect(composer).to have_rich_editor_active
@@ -302,10 +303,8 @@ RSpec.describe "Watermark - reprocess", system: true do
       composer.fill_title("Duplicate image toggle test")
       composer.switch_category(matched_category.name)
 
-      attach_file("file-uploader", fixture_path, make_visible: true)
-      expect(composer).to have_no_in_progress_uploads
-      attach_file("file-uploader", fixture_path, make_visible: true)
-      expect(composer).to have_no_in_progress_uploads
+      upload_and_wait
+      upload_and_wait
 
       expect(composer.preview).to have_css(".image-wrapper", count: 2)
       expect(page).to have_css(".watermark-manual-toolbar__toggle", count: 2)
@@ -330,10 +329,8 @@ RSpec.describe "Watermark - reprocess", system: true do
       composer.fill_title("Duplicate image toggle identity test")
       composer.switch_category(matched_category.name)
 
-      attach_file("file-uploader", fixture_path, make_visible: true)
-      expect(composer).to have_no_in_progress_uploads
-      attach_file("file-uploader", fixture_path, make_visible: true)
-      expect(composer).to have_no_in_progress_uploads
+      upload_and_wait
+      upload_and_wait
 
       expect(composer.preview).to have_css(".image-wrapper", count: 2)
       expect(page).to have_css(".watermark-manual-toolbar__toggle", count: 2)
@@ -384,8 +381,7 @@ RSpec.describe "Watermark - reprocess", system: true do
       composer.fill_title("Restored draft test")
       composer.switch_category(matched_category.name)
 
-      attach_file("file-uploader", fixture_path, make_visible: true)
-      expect(composer).to have_no_in_progress_uploads
+      upload_and_wait
       expect(composer.preview).to have_css(".image-wrapper")
 
       try_until_success(reason: "Relies on an Ember debounce to update the draft") do
