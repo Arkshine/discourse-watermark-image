@@ -230,14 +230,10 @@ RSpec.describe "Watermark - reprocess", system: true do
       toggle_button.click
 
       try_until_success(timeout: 10) do
-        expect(find("textarea.d-editor-input", visible: :all).value).not_to eq(
-          reply_before_toggle,
-        )
+        expect(find("textarea.d-editor-input", visible: :all).value).not_to eq(reply_before_toggle)
       end
 
-      expect(find(".watermark-manual-toolbar__toggle")[:class]).to include(
-        "--removed",
-      )
+      expect(find(".watermark-manual-toolbar__toggle")[:class]).to include("--removed")
 
       composer.submit
       expect(page).to have_css(".fancy-title")
@@ -267,9 +263,7 @@ RSpec.describe "Watermark - reprocess", system: true do
       expect(toggle_button[:class]).to include("--applied")
       toggle_button.click
 
-      try_until_success(timeout: 10) do
-        expect(toggle_button[:class]).to include("--removed")
-      end
+      try_until_success(timeout: 10) { expect(toggle_button[:class]).to include("--removed") }
 
       composer.submit
       expect(page).to have_css(".fancy-title")
@@ -320,9 +314,7 @@ RSpec.describe "Watermark - reprocess", system: true do
       all(".watermark-manual-toolbar__toggle").first.click
 
       try_until_success(timeout: 10) do
-        expect(find("textarea.d-editor-input", visible: :all).value).not_to eq(
-          reply_before_toggle,
-        )
+        expect(find("textarea.d-editor-input", visible: :all).value).not_to eq(reply_before_toggle)
       end
 
       expect(page).to have_css(".watermark-manual-toolbar__toggle", count: 2)
@@ -353,9 +345,7 @@ RSpec.describe "Watermark - reprocess", system: true do
       all(".watermark-manual-toolbar__toggle").last.click
 
       try_until_success(timeout: 10) do
-        expect(find("textarea.d-editor-input", visible: :all).value).not_to eq(
-          reply_before_toggle,
-        )
+        expect(find("textarea.d-editor-input", visible: :all).value).not_to eq(reply_before_toggle)
       end
 
       reply_after_toggle = find("textarea.d-editor-input", visible: :all).value

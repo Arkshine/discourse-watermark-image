@@ -15,8 +15,8 @@ importers:
         specifier: 1.1.1
         version: 1.1.1(typescript@5.9.3)
       '@zxing/library':
-        specifier: ^0.23.0
-        version: 0.23.0
+        specifier: ^0.21.3
+        version: 0.21.3
       concurrently:
         specifier: ^9.2.1
         version: 9.2.4
@@ -621,9 +621,9 @@ packages:
   '@vscode/l10n@0.0.18':
     resolution: {integrity: sha512-KYSIHVmslkaCDyw013pphY+d7x1qV8IZupYfeIfzNA+nsaWHbn5uPuQRvdRFsa9zFzGeudPuoGoZ1Op4jrJXIQ==}
 
-  '@zxing/library@0.23.0':
-    resolution: {integrity: sha512-6fkkoFwP8CHxl6ugnPsj74PLJgX2iRv5zczGAyt5OBzQgxFhuhF0NCEc4t4OvSr8xAv2MRLlI0Iu9ZGDZQ2urA==}
-    engines: {node: '>= 24.0.0'}
+  '@zxing/library@0.21.3':
+    resolution: {integrity: sha512-hZHqFe2JyH/ZxviJZosZjV+2s6EDSY0O24R+FQmlWZBZXP9IqMo7S3nb3+2LBWxodJQkSurdQGnqE7KXqrYgow==}
+    engines: {node: '>= 10.4.0'}
 
   '@zxing/text-encoding@0.9.0':
     resolution: {integrity: sha512-U/4aVJ2mxI0aDNI8Uq0wEhMgY+u4CNtEb0om3+y3+niDAsoTCOB33UF0sxpzqzdqXLqmvc+vZyAt4O8pPdfkwA==}
@@ -2997,7 +2997,7 @@ snapshots:
 
   '@vscode/l10n@0.0.18': {}
 
-  '@zxing/library@0.23.0':
+  '@zxing/library@0.21.3':
     dependencies:
       ts-custom-error: 3.3.1
     optionalDependencies:

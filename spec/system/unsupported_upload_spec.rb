@@ -25,9 +25,7 @@ RSpec.describe "Watermark - unsupported upload extension", system: true do
       attach_gif
 
       expect(dialog).to be_open
-      expect(dialog).to have_content(
-        "doesn't support watermarking",
-      )
+      expect(dialog).to have_content("doesn't support watermarking")
     end
   end
 
