@@ -22,6 +22,35 @@ export default class WatermarkSettingsTabs extends Component {
     return () => delete section.dataset.activeTab;
   });
 
+  // Core re-renders setting rows after load, so re-tag on child changes.
+  tagSettingRows = modifier(() => {
+    const { section, tabs } = this.args;
+    if (!section) {
+      return;
+    }
+
+    const rowsFor = (tab) =>
+      tab.settings
+        .map((id) => section.querySelector(`[data-setting="${id}"]`))
+        .filter(Boolean);
+
+    const tag = () =>
+      tabs.forEach((tab) =>
+        rowsFor(tab).forEach((row) => (row.dataset.watermarkTab = tab.id))
+      );
+
+    tag();
+    const observer = new MutationObserver(tag);
+    observer.observe(section, { childList: true });
+
+    return () => {
+      observer.disconnect();
+      tabs.forEach((tab) =>
+        rowsFor(tab).forEach((row) => delete row.dataset.watermarkTab)
+      );
+    };
+  });
+
   constructor() {
     super(...arguments);
     this.activeTab = this.args.tabs[0].id;
@@ -33,7 +62,7 @@ export default class WatermarkSettingsTabs extends Component {
   }
 
   <template>
-    <div class="watermark-tabs" {{this.syncActiveTab}}>
+    <div class="watermark-tabs" {{this.syncActiveTab}} {{this.tagSettingRows}}>
       <HorizontalOverflowNav
         @ariaLabel={{i18n (themePrefix "settings_ui.tabs_label")}}
       >
@@ -51,6 +80,11 @@ export default class WatermarkSettingsTabs extends Component {
       <DButton
         class="watermark-tabs__preview-toggle btn-flat"
         @icon={{if @previewShown "eye-slash" "eye"}}
+        @translatedLabel={{i18n
+          (themePrefix
+            (concat "preview.buttons." (if @previewShown "hide" "show"))
+          )
+        }}
         @translatedTitle={{i18n
           (themePrefix
             (concat "preview.buttons." (if @previewShown "hide" "show"))

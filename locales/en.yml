@@ -196,12 +196,14 @@ en:
         toggle: "Toggle watermark"
   settings_ui:
     tabs_label: Watermark settings
+    headings:
+      general: General
+      default: Default watermark
     tabs:
       content: Content
       appearance: Appearance
       placement: Placement
       rules: Conditions
-      general: General
     source:
       image: Image
       qrcode: QR code

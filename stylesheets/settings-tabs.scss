@@ -1,10 +1,14 @@
 .admin-interface {
   .watermark-tabs {
+    position: sticky;
+    top: var(--header-offset, 0);
+    z-index: 1;
     display: flex;
     align-items: stretch;
     gap: var(--space-2);
     margin-bottom: var(--space-4);
     border-bottom: 1px solid var(--primary-low);
+    background: var(--secondary);
 
     .horizontal-overflow-nav {
       flex: 1 1 auto;
@@ -44,6 +48,10 @@
     &__preview-toggle {
       flex: 0 0 auto;
       align-self: center;
+
+      .mobile-view & .d-button-label {
+        display: none;
+      }
     }
   }
 
@@ -52,107 +60,68 @@
     flex-direction: column;
   }
 
+  .watermark-settings-heading {
+    margin: var(--space-4) 0 var(--space-2);
+    font-size: var(--font-up-1);
+  }
+
+  // Section order: profiles, general heading, global fields,
+  // default heading, default toggle, tabs, tabbed fields.
   .theme.settings [data-setting="watermark_profiles"] {
-    order: -2;
+    order: -6;
+  }
+
+  .theme.settings .watermark-settings-general-heading-mount {
+    order: -5;
+  }
+
+  .theme.settings
+    [data-setting]:not(
+      [data-watermark-tab],
+      [data-setting="watermark_profiles"],
+      [data-setting="watermark_default_enabled"]
+    ) {
+    order: -4;
+  }
+
+  .theme.settings .watermark-settings-default-heading-mount {
+    order: -3;
   }
 
   .theme.settings [data-setting="watermark_default_enabled"] {
+    order: -2;
+  }
+
+  .theme.settings .watermark-settings-tabs-mount {
     order: -1;
   }
 
   .theme.settings:has(
       [data-setting="watermark_default_enabled"]
         [role="switch"][aria-checked="false"]
-    )
-    .watermark-tabs__tab:not([data-tab-id="general"]) {
-    display: none;
-  }
-
-  .theme.settings:has(
-      [data-setting="watermark_default_enabled"]
-        [role="switch"][aria-checked="false"]
-    )
-    [data-setting]:not(
-      [data-setting="watermark_profiles"],
-      [data-setting="watermark_default_enabled"],
-      [data-setting="watermark_manual_toggle_groups"],
-      [data-setting="watermark_skip_small_images"],
-      [data-setting="watermark_min_image_dimensions"],
-      [data-setting="watermark_allow_non_supported_uploads"],
-      [data-setting="watermark_allow_upload_on_error"]
     ) {
-    display: none;
-  }
-
-  // Per-tab filtering only applies while default_enabled is on — while off,
-  // the block above already restricts the page to the general tab's fields.
-  .theme.settings:not(
-      :has(
-        [data-setting="watermark_default_enabled"]
-          [role="switch"][aria-checked="false"]
-      )
-    ) {
-    &[data-active-tab="content"]
-      [data-setting]:not(
-        [data-setting="watermark_profiles"],
-        [data-setting="watermark_default_enabled"],
-        [data-setting="watermark_source"],
-        [data-setting="watermark_image"],
-        [data-setting="watermark_qrcode_text"],
-        [data-setting="watermark_qrcode_color"],
-        [data-setting="watermark_qrcode_background_color"],
-        [data-setting="watermark_qrcode_quiet_zone"],
-        [data-setting="watermark_qrcode_error_correction"],
-        [data-setting="watermark_qrcode_style_config"],
-        [data-setting="watermark_qrcode_halftone_image"],
-        [data-setting="watermark_qrcode_logo_config"],
-        [data-setting="watermark_qrcode_logo_image"],
-        [data-setting="watermark_text"],
-        [data-setting="watermark_text_style"]
-      ),
-    &[data-active-tab="appearance"]
-      [data-setting]:not(
-        [data-setting="watermark_profiles"],
-        [data-setting="watermark_default_enabled"],
-        [data-setting="watermark_opacity"],
-        [data-setting="watermark_blend_mode"],
-        [data-setting="watermark_size_mode"],
-        [data-setting="watermark_relative_width"],
-        [data-setting="watermark_absolute_scale"],
-        [data-setting="watermark_max_size"]
-      ),
-    &[data-active-tab="placement"]
-      [data-setting]:not(
-        [data-setting="watermark_profiles"],
-        [data-setting="watermark_default_enabled"],
-        [data-setting="watermark_position"],
-        [data-setting="watermark_margin_x"],
-        [data-setting="watermark_margin_y"],
-        [data-setting="watermark_rotate"],
-        [data-setting="watermark_pattern"],
-        [data-setting="watermark_pattern_allow_partial"],
-        [data-setting="watermark_pattern_max_count"],
-        [data-setting="watermark_pattern_spacing"]
-      ),
-    &[data-active-tab="rules"]
-      [data-setting]:not(
-        [data-setting="watermark_profiles"],
-        [data-setting="watermark_default_enabled"],
-        [data-setting="watermark_categories"],
-        [data-setting="watermark_groups"],
-        [data-setting="watermark_tags"]
-      ),
-    &[data-active-tab="general"]
-      [data-setting]:not(
-        [data-setting="watermark_profiles"],
-        [data-setting="watermark_default_enabled"],
-        [data-setting="watermark_manual_toggle_groups"],
-        [data-setting="watermark_skip_small_images"],
-        [data-setting="watermark_min_image_dimensions"],
-        [data-setting="watermark_allow_non_supported_uploads"],
-        [data-setting="watermark_allow_upload_on_error"]
-      ) {
+    .watermark-settings-tabs-mount,
+    [data-watermark-tab] {
       display: none;
+    }
+  }
+
+  @each $tab in content, appearance, placement, rules {
+    .theme.settings[data-active-tab="#{$tab}"]
+      [data-watermark-tab]:not([data-watermark-tab="#{$tab}"]) {
+      display: none;
+    }
+
+    .theme.settings:has([data-watermark-tab="#{$tab}"].overridden)
+      .watermark-tabs__tab[data-tab-id="#{$tab}"]::after {
+      content: "";
+      display: inline-block;
+      width: 0.5rem;
+      height: 0.5rem;
+      margin-left: var(--space-1);
+      border-radius: 100%;
+      background-color: var(--highlight-high);
+      vertical-align: middle;
     }
   }
 }
