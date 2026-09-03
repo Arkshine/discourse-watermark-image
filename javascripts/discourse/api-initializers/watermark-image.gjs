@@ -294,7 +294,7 @@ class WatermarkInit {
                   }
                 }
 
-                return originalHandler;
+                return originalHandler ? originalHandler(currentFile) : true;
               };
 
               return result;
