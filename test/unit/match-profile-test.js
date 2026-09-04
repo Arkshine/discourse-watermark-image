@@ -3,6 +3,7 @@ import { setupTest } from "ember-qunit";
 import { module, test } from "qunit";
 import { AUTO_GROUPS } from "discourse/lib/constants";
 import matchProfile, {
+  matchProfiles,
   resolveComposerTags,
 } from "../../discourse/lib/match-profile";
 
@@ -326,6 +327,37 @@ module("Unit | Lib | match-profile", function (hooks) {
       ),
       second,
       "falls through to the next profile when the first misses"
+    );
+  });
+
+  test("matchProfiles returns every match in order", function (assert) {
+    const disabled = { enabled: false, user_in_groups: true, name: "d" };
+    const first = {
+      enabled: true,
+      categories: [5],
+      user_in_groups: true,
+      name: "a",
+    };
+    const second = { enabled: true, user_in_groups: true, name: "b" };
+    const miss = {
+      enabled: true,
+      categories: [9],
+      user_in_groups: true,
+      name: "c",
+    };
+    const user = buildUser(this);
+
+    assert.deepEqual(
+      matchProfiles(
+        [disabled, first, second, miss],
+        buildComposer(this, { categoryId: 5 }),
+        user
+      ),
+      [first, second]
+    );
+    assert.deepEqual(
+      matchProfiles(undefined, buildComposer(this, { categoryId: 5 }), user),
+      []
     );
   });
 });

@@ -8,6 +8,7 @@ import { imageDataToFile } from "../lib/media-watermark-utils";
 import Watermark from "../lib/watermark";
 import {
   buildTopicData,
+  matchingProfileNames,
   profileSignature,
   resolveProfile,
 } from "../lib/watermark/profile";
@@ -31,6 +32,16 @@ export default class WatermarkReprocess extends Service {
       this.handleToggleRequest
     );
     this.appEvents.on(
+      "discourse-watermark:pick-request",
+      this,
+      this.handlePickRequest
+    );
+    this.appEvents.on(
+      "discourse-watermark:apply-all-request",
+      this,
+      this.handleApplyAllRequest
+    );
+    this.appEvents.on(
       "discourse-watermark:rte-mounted",
       this,
       this.handleRteMounted
@@ -47,6 +58,16 @@ export default class WatermarkReprocess extends Service {
       this.handleToggleRequest
     );
     this.appEvents.off(
+      "discourse-watermark:pick-request",
+      this,
+      this.handlePickRequest
+    );
+    this.appEvents.off(
+      "discourse-watermark:apply-all-request",
+      this,
+      this.handleApplyAllRequest
+    );
+    this.appEvents.off(
       "discourse-watermark:rte-mounted",
       this,
       this.handleRteMounted
@@ -59,6 +80,14 @@ export default class WatermarkReprocess extends Service {
 
   handleToggleRequest(shortUrl, ordinal = 0) {
     this.toggleManual(this.composer.model, shortUrl, ordinal);
+  }
+
+  handlePickRequest(shortUrl, ordinal = 0, profileName = null) {
+    this.pickProfile(this.composer.model, shortUrl, profileName, ordinal);
+  }
+
+  handleApplyAllRequest(shortUrl) {
+    this.applyToAll(this.composer.model, shortUrl);
   }
 
   broadcastImages() {
@@ -100,6 +129,7 @@ export default class WatermarkReprocess extends Service {
 
     const resolved = resolveProfile(composerModel, this.currentUser);
     const signature = profileSignature(resolved);
+    const options = matchingProfileNames(composerModel, this.currentUser);
     let pruned = false;
 
     for (const [shortUrl, entry] of [...this.byShortUrl]) {
@@ -109,7 +139,22 @@ export default class WatermarkReprocess extends Service {
         continue;
       }
 
-      if (entry.manual != null || this.inFlight.has(shortUrl)) {
+      if (this.inFlight.has(shortUrl)) {
+        continue;
+      }
+
+      // Pinned profile no longer matches: remove the watermark.
+      if (entry.profileName && !options.includes(entry.profileName)) {
+        const reset = { ...entry, manual: false, profileName: null };
+        this.byShortUrl.set(shortUrl, reset);
+        this.startReprocess(composerModel, shortUrl, reset, {
+          ...resolved,
+          apply: false,
+        });
+        continue;
+      }
+
+      if (entry.manual != null) {
         continue;
       }
 
@@ -131,11 +176,14 @@ export default class WatermarkReprocess extends Service {
     }
 
     const resolved = resolveProfile(composerModel, this.currentUser);
+    const options = matchingProfileNames(composerModel, this.currentUser);
 
     const trackedImages = [...this.byShortUrl].map(([shortUrl, entry]) => ({
       shortUrl,
       fileName: entry.fileName,
       applied: entry.manual ?? resolved.apply,
+      profileName: entry.profileName ?? null,
+      options,
       processing: this.inFlight.has(shortUrl),
       available: true,
     }));
@@ -147,6 +195,8 @@ export default class WatermarkReprocess extends Service {
         shortUrl,
         fileName: null,
         applied: null,
+        profileName: null,
+        options,
         processing: false,
         available: false,
       }));
@@ -208,6 +258,82 @@ export default class WatermarkReprocess extends Service {
       entry,
       ordinal
     );
+  }
+
+  pickProfile(composerModel, shortUrl, profileName, ordinal = 0) {
+    if (!composerModel || composerModel !== this.composer.model) {
+      return;
+    }
+
+    const entry = this.byShortUrl.get(shortUrl);
+
+    if (!entry || this.inFlight.has(shortUrl)) {
+      return;
+    }
+
+    this.applyChoice(
+      composerModel,
+      shortUrl,
+      entry,
+      profileName != null,
+      profileName ?? null,
+      ordinal
+    );
+  }
+
+  applyToAll(composerModel, sourceShortUrl) {
+    if (!composerModel || composerModel !== this.composer.model) {
+      return;
+    }
+
+    const source = this.byShortUrl.get(sourceShortUrl);
+
+    if (!source) {
+      return;
+    }
+
+    for (const [shortUrl, entry] of [...this.byShortUrl]) {
+      if (shortUrl === sourceShortUrl || this.inFlight.has(shortUrl)) {
+        continue;
+      }
+
+      this.applyChoice(
+        composerModel,
+        shortUrl,
+        entry,
+        source.manual ?? null,
+        source.profileName ?? null
+      );
+    }
+  }
+
+  applyChoice(
+    composerModel,
+    shortUrl,
+    entry,
+    manual,
+    profileName,
+    ordinal = 0
+  ) {
+    const resolved = resolveProfile(composerModel, this.currentUser, {
+      profileName,
+    });
+    const target = { ...resolved, apply: manual ?? resolved.apply };
+    const updated = { ...entry, manual, profileName };
+
+    this.byShortUrl.set(shortUrl, updated);
+    this.broadcastImages();
+
+    if (profileSignature(target) !== entry.signature) {
+      this.startReprocess(
+        composerModel,
+        shortUrl,
+        updated,
+        target,
+        entry,
+        ordinal
+      );
+    }
   }
 
   startReprocess(

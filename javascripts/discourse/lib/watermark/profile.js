@@ -1,5 +1,6 @@
 import { AUTO_GROUPS } from "discourse/lib/constants";
-import matchProfile, {
+import {
+  matchProfiles,
   PROFILE_META_KEYS,
   resolveComposerTags,
 } from "../match-profile";
@@ -61,12 +62,28 @@ export function buildTopicData(composerModel) {
   };
 }
 
-export function resolveProfile(composerModel, currentUser) {
-  const profile = matchProfile(
+export function matchingProfileNames(composerModel, currentUser) {
+  return matchProfiles(
+    settings.watermark_profiles,
+    composerModel,
+    currentUser
+  ).map((profile) => profile.name);
+}
+
+export function resolveProfile(
+  composerModel,
+  currentUser,
+  { profileName } = {}
+) {
+  const matches = matchProfiles(
     settings.watermark_profiles,
     composerModel,
     currentUser
   );
+  const profile =
+    (profileName && matches.find((match) => match.name === profileName)) ||
+    matches[0] ||
+    null;
   const overwriteOptions = profileToOverwriteOptions(profile);
   const merged = { ...settings, ...overwriteOptions };
   const source = merged.watermark_source;

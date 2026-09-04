@@ -17,55 +17,61 @@ export function resolveComposerTags(composerModel) {
   return tags.map((tag) => (typeof tag === "string" ? tag : tag.slug));
 }
 
-export default function matchProfile(profiles, composerModel, currentUser) {
-  if (!Array.isArray(profiles)) {
-    return null;
+function profileMatches(profile, composerModel, currentUser) {
+  if (!profile.enabled) {
+    return false;
   }
 
-  return (
-    profiles.find((profile) => {
-      if (!profile.enabled) {
-        return false;
-      }
+  const categories = profile.categories ?? [];
 
-      const categories = profile.categories ?? [];
+  if (categories.length && !categories.includes(composerModel.categoryId)) {
+    return false;
+  }
 
-      if (categories.length && !categories.includes(composerModel.categoryId)) {
-        return false;
-      }
+  const tags = profile.tags ?? [];
 
-      const tags = profile.tags ?? [];
+  if (
+    tags.length &&
+    !resolveComposerTags(composerModel).some((slug) => tags.includes(slug))
+  ) {
+    return false;
+  }
 
-      if (
-        tags.length &&
-        !resolveComposerTags(composerModel).some((slug) => tags.includes(slug))
-      ) {
-        return false;
-      }
+  if (Object.hasOwn(profile, "user_in_groups")) {
+    if (!profile.user_in_groups) {
+      return false;
+    }
+  }
+  // DEPRECATED: Once user_in_ is fully supported, remove this.
+  else if (profile.groups?.length) {
+    const requiredGroups = profile.groups
+      .split("|")
+      .filter(Boolean)
+      .map((group) => Number(group));
 
-      if (Object.hasOwn(profile, "user_in_groups")) {
-        if (!profile.user_in_groups) {
-          return false;
-        }
-      }
-      // DEPRECATED: Once user_in_ is fully supported, remove this.
-      else if (profile.groups?.length) {
-        const requiredGroups = profile.groups
-          .split("|")
-          .filter(Boolean)
-          .map((group) => Number(group));
+    if (
+      !requiredGroups.includes(AUTO_GROUPS.everyone.id) &&
+      !currentUser.groups
+        .map((group) => group.id)
+        .some((group) => requiredGroups.includes(group))
+    ) {
+      return false;
+    }
+  }
 
-        if (
-          !requiredGroups.includes(AUTO_GROUPS.everyone.id) &&
-          !currentUser.groups
-            .map((group) => group.id)
-            .some((group) => requiredGroups.includes(group))
-        ) {
-          return false;
-        }
-      }
+  return true;
+}
 
-      return true;
-    }) ?? null
+export function matchProfiles(profiles, composerModel, currentUser) {
+  if (!Array.isArray(profiles)) {
+    return [];
+  }
+
+  return profiles.filter((profile) =>
+    profileMatches(profile, composerModel, currentUser)
   );
+}
+
+export default function matchProfile(profiles, composerModel, currentUser) {
+  return matchProfiles(profiles, composerModel, currentUser)[0] ?? null;
 }

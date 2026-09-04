@@ -213,15 +213,20 @@ class WatermarkInit {
               composerModel,
               api.getCurrentUser()
             );
+            const manual = settings.user_in_watermark_manual_toggle_groups
+              ? false
+              : null;
+            const apply = manual ?? resolved.apply;
 
             this.watermarkReprocess.trackUpload({
               fileName: file.name,
               fileType: file.type,
               originalFile: file.data,
-              signature: profileSignature(resolved),
+              manual,
+              signature: profileSignature({ ...resolved, apply }),
             });
 
-            if (!resolved.apply) {
+            if (!apply) {
               return null;
             }
 

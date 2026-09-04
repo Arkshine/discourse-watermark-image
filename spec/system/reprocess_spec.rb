@@ -216,7 +216,7 @@ RSpec.describe "Watermark - reprocess", system: true do
       theme.save!
     end
 
-    it "lets the poster manually remove and reapply the watermark for an image" do
+    it "uploads without a watermark and lets the poster apply it" do
       sign_in(user)
       topic_page.open_new_topic
       composer.fill_title("Manual toggle test")
@@ -226,7 +226,7 @@ RSpec.describe "Watermark - reprocess", system: true do
       expect(composer.preview).to have_css(".image-wrapper")
 
       toggle_button = find(".watermark-manual-toolbar__toggle")
-      expect(toggle_button[:class]).to include("--applied")
+      expect(toggle_button[:class]).to include("--removed")
 
       reply_before_toggle = find("textarea.d-editor-input", visible: :all).value
       toggle_button.click
@@ -235,7 +235,7 @@ RSpec.describe "Watermark - reprocess", system: true do
         expect(find("textarea.d-editor-input", visible: :all).value).not_to eq(reply_before_toggle)
       end
 
-      expect(find(".watermark-manual-toolbar__toggle")[:class]).to include("--removed")
+      expect(find(".watermark-manual-toolbar__toggle")[:class]).to include("--applied")
 
       composer.submit
       expect(page).to have_css(".fancy-title")
@@ -243,11 +243,11 @@ RSpec.describe "Watermark - reprocess", system: true do
       upload = topic_page.current_topic.first_post.uploads.first
       original_sha1 = Digest::SHA1.file(fixture_path).hexdigest
 
-      expect(upload.sha1).to eq(original_sha1)
+      expect(upload.sha1).not_to eq(original_sha1)
     end
 
     # Flaky test
-    xit "lets the poster manually remove the watermark via the rich editor" do
+    xit "lets the poster apply the watermark via the rich editor" do
       sign_in(user)
       topic_page.open_new_topic
       composer.fill_title("Manual toggle RTE test")
@@ -261,10 +261,10 @@ RSpec.describe "Watermark - reprocess", system: true do
       composer.rich_editor.find(".composer-image-node img").click
 
       toggle_button = find(".watermark-manual-toolbar__toggle")
-      expect(toggle_button[:class]).to include("--applied")
+      expect(toggle_button[:class]).to include("--removed")
       toggle_button.click
 
-      try_until_success(timeout: 10) { expect(toggle_button[:class]).to include("--removed") }
+      try_until_success(timeout: 10) { expect(toggle_button[:class]).to include("--applied") }
 
       composer.submit
       expect(page).to have_css(".fancy-title")
@@ -272,7 +272,191 @@ RSpec.describe "Watermark - reprocess", system: true do
       upload = topic_page.current_topic.first_post.uploads.first
       original_sha1 = Digest::SHA1.file(fixture_path).hexdigest
 
-      expect(upload.sha1).to eq(original_sha1)
+      expect(upload.sha1).not_to eq(original_sha1)
+    end
+  end
+
+  context "when several profiles match" do
+    before do
+      theme.update_setting(:watermark_manual_toggle_groups, "5") # AUTO_GROUPS.logged_in_users
+      theme.update_setting(
+        :watermark_profiles,
+        [
+          {
+            "name" => "first",
+            "enabled" => true,
+            "groups" => [5],
+            "source" => "text",
+            "text" => "FIRST",
+          },
+          {
+            "name" => "second",
+            "enabled" => true,
+            "groups" => [5],
+            "source" => "text",
+            "text" => "SECOND",
+          },
+        ],
+      )
+      theme.save!
+    end
+
+    it "lets the poster pick a matching profile from a menu" do
+      sign_in(user)
+      topic_page.open_new_topic
+      composer.fill_title("Profile picker test")
+
+      upload_and_wait
+      expect(composer.preview).to have_css(".image-wrapper")
+
+      reply_before_pick = find("textarea.d-editor-input", visible: :all).value
+
+      find(".watermark-manual-toolbar__toggle").click
+      menu = find(".fk-d-menu[data-identifier='watermark-profile-picker']")
+      expect(menu).to have_css(".dropdown-menu__item", count: 4)
+      expect(menu).to have_css(".is-selected", text: "No watermark")
+
+      menu.find("button", text: "second").click
+
+      try_until_success(timeout: 10) do
+        expect(find("textarea.d-editor-input", visible: :all).value).not_to eq(reply_before_pick)
+      end
+      expect(composer).to have_no_in_progress_uploads
+
+      find(".watermark-manual-toolbar__toggle").click
+      expect(find(".fk-d-menu[data-identifier='watermark-profile-picker']")).to have_css(
+        ".is-selected",
+        text: "second",
+      )
+    end
+  end
+
+  context "when applying a picked profile to all images" do
+    before do
+      theme.update_setting(:watermark_manual_toggle_groups, "5") # AUTO_GROUPS.logged_in_users
+      theme.update_setting(
+        :watermark_profiles,
+        [
+          {
+            "name" => "first",
+            "enabled" => true,
+            "groups" => [5],
+            "source" => "text",
+            "text" => "FIRST",
+          },
+          {
+            "name" => "second",
+            "enabled" => true,
+            "groups" => [5],
+            "source" => "text",
+            "text" => "SECOND",
+          },
+        ],
+      )
+      theme.save!
+    end
+
+    it "re-watermarks every image with the picked profile" do
+      sign_in(user)
+      topic_page.open_new_topic
+      composer.fill_title("Apply to all test")
+
+      upload_and_wait
+      upload_and_wait
+      expect(composer.preview).to have_css(".image-wrapper", count: 2)
+
+      urls_before =
+        find("textarea.d-editor-input", visible: :all).value.scan(%r{\(upload://[^)]+\)})
+      expect(urls_before.size).to eq(2)
+
+      all(".watermark-manual-toolbar__toggle").first.click
+      find(".fk-d-menu[data-identifier='watermark-profile-picker']").find(
+        "button",
+        text: "second",
+      ).click
+
+      try_until_success(timeout: 10) do
+        expect(all(".watermark-manual-toolbar__toggle.--applied").size).to eq(1)
+      end
+      expect(composer).to have_no_in_progress_uploads
+
+      all(".watermark-manual-toolbar__toggle").first.click
+      find(".fk-d-menu[data-identifier='watermark-profile-picker']").find(
+        "button",
+        text: "Apply to all images",
+      ).click
+
+      try_until_success(timeout: 10) do
+        expect(all(".watermark-manual-toolbar__toggle.--applied").size).to eq(2)
+      end
+      expect(composer).to have_no_in_progress_uploads
+
+      urls_after = find("textarea.d-editor-input", visible: :all).value.scan(%r{\(upload://[^)]+\)})
+      expect(urls_after.size).to eq(2)
+      expect(urls_after[0]).not_to eq(urls_before[0])
+      expect(urls_after[1]).not_to eq(urls_before[1])
+    end
+  end
+
+  context "when a picked profile stops matching" do
+    fab!(:matched_category, :category)
+    fab!(:other_category, :category)
+
+    before do
+      theme.update_setting(:watermark_manual_toggle_groups, "5") # AUTO_GROUPS.logged_in_users
+      theme.update_setting(
+        :watermark_profiles,
+        [
+          {
+            "name" => "everywhere",
+            "enabled" => true,
+            "groups" => [5],
+            "source" => "text",
+            "text" => "ALL",
+          },
+          {
+            "name" => "category only",
+            "enabled" => true,
+            "categories" => [matched_category.id],
+            "groups" => [5],
+            "source" => "text",
+            "text" => "CATEGORY",
+          },
+        ],
+      )
+      theme.save!
+    end
+
+    it "removes the watermark after a category change" do
+      sign_in(user)
+      topic_page.open_new_topic
+      composer.fill_title("Pin reset test")
+      composer.switch_category(matched_category.name)
+
+      upload_and_wait
+      expect(composer.preview).to have_css(".image-wrapper")
+
+      find(".watermark-manual-toolbar__toggle").click
+      find(".fk-d-menu[data-identifier='watermark-profile-picker']").find(
+        "button",
+        text: "category only",
+      ).click
+
+      try_until_success(timeout: 10) do
+        expect(find(".watermark-manual-toolbar__toggle")[:class]).to include("--applied")
+      end
+      expect(composer).to have_no_in_progress_uploads
+      url_pinned = find("textarea.d-editor-input", visible: :all).value[%r{\(upload://[^)]+\)}]
+
+      composer.switch_category(other_category.name)
+
+      try_until_success(timeout: 10) do
+        expect(
+          find("textarea.d-editor-input", visible: :all).value[%r{\(upload://[^)]+\)}],
+        ).not_to eq(url_pinned)
+      end
+      expect(composer).to have_no_in_progress_uploads
+      expect(find(".watermark-manual-toolbar__toggle")[:class]).to include("--removed")
     end
   end
 

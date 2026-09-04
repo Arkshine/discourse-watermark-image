@@ -68,3 +68,8 @@
     border-radius: 0 var(--d-border-radius) var(--d-border-radius) 0;
   }
 }
+
+// The composer sits above the default dropdown layer.
+.fk-d-menu.watermark-profile-picker-content {
+  z-index: z("composer", "dropdown");
+}

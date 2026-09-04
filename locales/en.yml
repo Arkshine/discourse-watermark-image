@@ -4,7 +4,7 @@ en:
     settings:
       watermark_default_enabled: Apply a default watermark, used when no profile matches the upload.
       watermark_profiles:
-        description: "Per-target watermark profiles (experimental)."
+        description: "Per-target watermark profiles (experimental). Checked top to bottom, the first enabled profile whose conditions match is used."
         schema:
           properties:
             name:
@@ -15,13 +15,13 @@ en:
               description: Turn this profile on or off without deleting it.
             categories:
               label: Categories
-              description: Apply this profile to these categories.
+              description: Apply this profile to these categories. Leave empty to match any category.
             groups:
               label: Groups
-              description: Apply this profile to users in these groups.
+              description: Apply this profile to users in these groups. Required, with no groups selected the profile never applies.
             tags:
               label: Tags
-              description: Apply this profile to topics with these tags.
+              description: Apply this profile to topics with these tags. Leave empty to match any tag.
             source:
               label: Source
               description: Whether the watermark is an image, a generated QR code, or text.
@@ -168,7 +168,7 @@ en:
       watermark_pattern_max_count: Maximum number of times the watermark is repeated. (0 is infinite)
       watermark_pattern_spacing: Spacing between repeated watermarks (in % of the target image).
       watermark_categories: Choose which categories the watermark should be applied to.
-      watermark_groups: Choose which groups the watermark should be applied to.
+      watermark_groups: Choose which groups the watermark should be applied to. With no groups selected, the default watermark never applies.
       watermark_tags: Choose which tags the watermark should be applied to.
       watermark_manual_toggle_groups: Choose which groups can manually toggle the watermark on/off for an image they've uploaded in the composer.
       watermark_skip_small_images: Skip watermarking if image is below minimum dimensions.
@@ -194,6 +194,9 @@ en:
       unavailable: "This image was uploaded in a previous session and can't be changed here."
       toolbar:
         toggle: "Toggle watermark"
+      menu:
+        none: "No watermark"
+        apply_all: "Apply to all images"
   settings_ui:
     tabs_label: Watermark settings
     headings:

@@ -63,6 +63,8 @@ class ManualTogglePluginView {
       this.#state.applied = image.applied;
       this.#state.processing = image.processing;
       this.#state.available = image.available;
+      this.#state.profileName = image.profileName;
+      this.#state.options = image.options;
       return;
     }
 
@@ -106,6 +108,8 @@ class ManualTogglePluginView {
         applied: image.applied,
         processing: image.processing,
         available: image.available,
+        profileName: image.profileName,
+        options: image.options,
         ordinal,
       });
       this.#state = state;
@@ -119,6 +123,18 @@ class ManualTogglePluginView {
             "discourse-watermark:toggle-request",
             currentShortUrl,
             state.ordinal
+          ),
+        pick: (currentShortUrl, profileName) =>
+          this.#appEvents.trigger(
+            "discourse-watermark:pick-request",
+            currentShortUrl,
+            state.ordinal,
+            profileName
+          ),
+        applyAll: (currentShortUrl) =>
+          this.#appEvents.trigger(
+            "discourse-watermark:apply-all-request",
+            currentShortUrl
           ),
       };
 
