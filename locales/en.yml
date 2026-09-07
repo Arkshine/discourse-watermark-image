@@ -2,10 +2,111 @@ en:
   theme_metadata:
     description: ""
     settings:
+      watermark_default_enabled: Apply a default watermark, used when no profile matches the upload.
+      watermark_profiles:
+        description: "Per-target watermark profiles (experimental). Checked top to bottom, the first enabled profile whose conditions match is used."
+        schema:
+          properties:
+            name:
+              label: Name
+              description: A label for this profile.
+            enabled:
+              label: Enabled
+              description: Turn this profile on or off without deleting it.
+            categories:
+              label: Categories
+              description: Apply this profile to these categories. Leave empty to match any category.
+            groups:
+              label: Groups
+              description: Apply this profile to users in these groups. Required, with no groups selected the profile never applies.
+            tags:
+              label: Tags
+              description: Apply this profile to topics with these tags. Leave empty to match any tag.
+            source:
+              label: Source
+              description: Whether the watermark is an image, a generated QR code, or text.
+            image:
+              label: Image
+              description: The watermark image for this profile.
+            qrcode_text:
+              label: QR text
+              description: The text to encode in the QR code.
+            qrcode_color:
+              label: QR color
+              description: The color of the QR code.
+            qrcode_background_color:
+              label: QR background color
+              description: The background color of the QR code.
+            qrcode_quiet_zone:
+              label: QR quiet zone
+              description: White-space border around the QR code, in modules (0-10).
+            qrcode_error_correction:
+              label: QR error correction
+              description: Error-correction level for the QR code.
+            qrcode_style_config:
+              label: QR style
+              description: Pick a QR code style and adjust its settings.
+            qrcode_halftone_image:
+              label: Halftone image
+              description: Image dithered behind the code by the Halftone background style (same origin or a CORS-enabled host).
+            qrcode_logo_config:
+              label: QR logo
+              description: Place an icon or an image in the center of the QR code.
+            qrcode_logo_image:
+              label: QR logo image
+              description: Image drawn in the center of the QR code (same origin or a CORS-enabled host).
+            text:
+              label: Text
+              description: The text to draw as the watermark. Supports multiple lines.
+            text_style:
+              label: Text style
+              description: Font, weight, style, alignment, color, outline, shadow, and background of the watermark text.
+            position:
+              label: Position
+              description: Where the watermark appears.
+            margin_x:
+              label: Horizontal margin
+              description: Horizontal offset from the edge (% of the image).
+            margin_y:
+              label: Vertical margin
+              description: Vertical offset from the edge (% of the image).
+            opacity:
+              label: Opacity
+              description: How visible the watermark is (1-100%).
+            size_mode:
+              label: Size mode
+              description: Size relative to the image, or the original absolute size.
+            relative_width:
+              label: Relative width
+              description: Width relative to the image (%). Relative mode only.
+            absolute_scale:
+              label: Absolute scale
+              description: Scale of the original watermark size. Absolute mode only.
+            max_size:
+              label: Max size
+              description: Maximum watermark size (% of the image). Absolute mode only.
+            rotate:
+              label: Rotation
+              description: Rotate the watermark (-360 to 360 degrees).
+            pattern:
+              label: Pattern
+              description: How the watermark is repeated.
+            pattern_allow_partial:
+              label: Allow partial
+              description: Allow partial watermarks at the edges of the image.
+            pattern_max_count:
+              label: Max repeats
+              description: Maximum number of repeats (0 is infinite).
+            pattern_spacing:
+              label: Spacing
+              description: Spacing between repeats (% of the image).
+            blend_mode:
+              label: Blend mode
+              description: How the watermark blends with the image.
       watermark_image: |
         The image to use as watermark.<br>
         Supported formats: PNG, JPEG, BMP, ICO, TIFF, WEBP.
-      watermark_qrcode_enabled: Enable QR code watermark.
+      watermark_source: Whether the watermark is an image, a generated QR code, or text.
       watermark_qrcode_text: |
         The text to encode in the QR code.
         There are placeholders available:<br>
@@ -24,8 +125,12 @@ en:
           - Quartile: ~25% recovery<br>
           - High: ~30% recovery<br><br>
         More information about error correction levels can be found <a href="https://www.qrcode.com/en/about/error_correction.html" target="_blank">here.</a></details>
-        <br><br><br>
-        <h2>Appearance</h2>
+      watermark_qrcode_style_config: Pick a QR code style and adjust its style-specific settings.
+      watermark_qrcode_halftone_image: Image dithered behind the code by the Halftone background style. Must be same-origin or served from a CORS-enabled host.
+      watermark_qrcode_logo_config: Place an icon or an image in the center of the QR code. Works with every style.
+      watermark_qrcode_logo_image: Image drawn in the center of the QR code. Must be same-origin or served from a CORS-enabled host.
+      watermark_text: The text to draw as the watermark. Supports multiple lines.
+      watermark_text_style: Font, weight, style, alignment, color, outline, shadow, and background of the watermark text.
       watermark_position: Choose where the watermark appears.
       watermark_margin_x: Adjust the horizontal margin of the watermark from the edge of the image (in % of the target image).
       watermark_margin_y: Adjust the vertical margin of the watermark from the edge of the image (in % of the target image).
@@ -34,14 +139,9 @@ en:
         Choose how the watermark is sized.<br>
         <code>relative</code> - The watermark size is relative to the target's image width.<br>
         <code>absolute</code> - The watermark is applied at its original size.<br>
-      watermark_relative_width: |
-        The width of the watermark relative to the target image width (in %).<br>
-        Only applies when the watermark size mode is set to relative.
-      watermark_absolute_scale: |
-        Scale factor for original watermark size (min: 0.01).<br>
-        Only applies when the watermark size mode is set to absolute.
-      watermark_max_size: |
-        Maximum size of the watermark (in % of the target image).<br>
+      watermark_relative_width: The width of the watermark relative to the target image width (in %).
+      watermark_absolute_scale: "Scale factor for original watermark size (min: 0.01)."
+      watermark_max_size: Maximum size of the watermark (in % of the target image).
       watermark_rotate: Rotate the watermark (-360 to 360 degrees).
       watermark_blend_mode: |
         Choose how the watermark blends with the image.
@@ -63,25 +163,175 @@ en:
           <code>lighten</code> keeps the lighter of the corresponding pixels from either image. Good for creating bright effects or removing dark elements.<br>
           <code>darken</code> keeps the darker of the corresponding pixels from either image. Good for creating shadows or removing bright elements.
         </details>
-        <br><br><br>
-        <h2>Template</h2>
       watermark_pattern: Choose how the watermark is repeated.
       watermark_pattern_allow_partial: Allow partial watermarks at the edges of the image.
       watermark_pattern_max_count: Maximum number of times the watermark is repeated. (0 is infinite)
-      watermark_pattern_spacing: |
-        Spacing between repeated watermarks (in % of the target image).
-        <br><br><br>
-        <h2>Rules</h2>
+      watermark_pattern_spacing: Spacing between repeated watermarks (in % of the target image).
       watermark_categories: Choose which categories the watermark should be applied to.
-      watermark_groups: Choose which groups the watermark should be applied to.
+      watermark_groups: Choose which groups the watermark should be applied to. With no groups selected, the default watermark never applies.
+      watermark_tags: Choose which tags the watermark should be applied to.
+      watermark_manual_toggle_groups: Choose which groups can manually toggle the watermark on/off for an image they've uploaded in the composer.
       watermark_skip_small_images: Skip watermarking if image is below minimum dimensions.
       watermark_min_image_dimensions: Minimum dimensions required to apply watermark (width x height).
       watermark_allow_non_supported_uploads: Allow image uploads to continue even when the format is not supported by the watermark library.
+      watermark_allow_upload_on_error: Allow image uploads to continue when watermarking fails unexpectedly. When disabled, the upload is blocked and the error is shown to the user, enforcing that every image is watermarked.
   preview:
     title: Preview
     buttons:
       refresh: Change image
-      close: Close preview
+      close: Close
+      expand: Open full size preview
+      show: Show preview
+      hide: Hide preview
+    scaled: "(open to see full size)"
   composer:
     errors:
       upload_not_authorized: "Sorry, the file you are trying to upload doesn't support watermarking (authorized extensions: %{authorized_extensions})."
+      watermark_failed: "Sorry, this image could not be watermarked and the upload was blocked. <br>Please try again, and contact the site administrator if the problem persists."
+    manual_toggle:
+      applied: "Watermark applied to %{fileName}. Click to remove."
+      removed: "Watermark removed from %{fileName}. Click to apply."
+      unavailable: "This image was uploaded in a previous session and can't be changed here."
+      toolbar:
+        toggle: "Toggle watermark"
+      menu:
+        none: "No watermark"
+        apply_all: "Apply to all images"
+  settings_ui:
+    tabs_label: Watermark settings
+    headings:
+      general: General
+      default: Default watermark
+    tabs:
+      content: Content
+      appearance: Appearance
+      placement: Placement
+      rules: Conditions
+    source:
+      image: Image
+      qrcode: QR code
+      text: Text
+    text:
+      length_warning: Long text may reduce rendering quality or slow down uploads.
+    text_style:
+      params:
+        font: Font
+        weight: Weight
+        italic: Italic
+        case: Case
+        letter_spacing: Letter spacing
+        align: Alignment
+        color: Color
+        stroke_width: Outline width
+        stroke_color: Outline color
+        shadow_blur: Shadow blur
+        shadow_color: Shadow color
+        background: Background
+        background_color: Background color
+    stepper:
+      decrease: Decrease
+      increase: Increase
+    color:
+      value: Color value
+      pick: Pick a color
+      add_stop: Add a gradient color
+      remove_stop: Back to a single color
+    reset_param: Reset to default
+    axes:
+      more_options: More options
+      fewer_options: Fewer options
+      templates: Templates
+      custom: Custom
+      roll: Surprise me
+      roll_title: "Generate QR code with random settings. Scan the result before publishing."
+      generate_more: Generate more
+      generate_more_title: "Generate four variations that keep this pattern and effect, changing everything else. Replaces the ones below each time."
+      scan_warning: "This choice does not scan on every camera, older phones especially. Test the code before publishing."
+      colors:
+        label: Colors
+        basis: Basis
+        eyes: Eyes
+        frame: Frame
+        multicolor: Multicolor
+        advanced: Advanced
+      params:
+        foreground: Foreground
+        background: Background
+        margin: Margin
+        eyeFrameColor: Eyes frame colour
+        eyeInColor: Eyes centre colour
+        dataColor: Data colour
+        frameGap: Frame gap
+        framePadding: Frame padding
+        frameThickness: Frame thickness
+        backdrop: Background style
+        frameColor: Frame colour
+        backdropStrength: Background strength
+        eyeWashOpacity: Eye background fade
+        halftoneScale: Image scale
+        halftoneCells: Image detail
+        halftoneAlignment: Solid alignment patterns
+        halftoneTiming: Solid timing patterns
+        halftoneBrightness: Image brightness
+        halftoneContrast: Image contrast
+        dataScale: Data scale
+        dataOpacity: Data opacity
+        frameText: Caption text
+        frameLabelShape: Caption style
+        frameLabelPosition: Caption position
+        frameFont: Caption font
+        frameTextColor: Caption colour
+        quietZone: Quiet zone
+        invert: Invert
+        lineThickness: Line thickness
+        finderThickness: Finder thickness
+        seed: Seed
+        horizontalThickness: Horizontal thickness
+        verticalThickness: Vertical thickness
+        crossThickness: Cross thickness
+        randomize: Vary bubble size
+        cellColor: Cell colour
+        lineColor: Line colour
+        groutColor: Grout colour
+        fillStyle: Fill style
+        roughness: Roughness
+        bowing: Bowing
+        fillWeight: Fill weight
+        fillGap: Fill gap
+        strokeWidth: Stroke width
+        shapes: Shapes
+        shapeOpacity: Shape opacity
+        shapeGap: Shape gap
+        qrLayer: Code sits
+        offsetX: Offset X
+        offsetY: Offset Y
+        blendMode: Blend mode
+        glowAmount: Glow amount
+        clearance: Clearance
+        density: Density
+        dotSize: Fill size
+        innerSquare: Inner square
+        outerSquare: Outer square
+        tile:
+          cellColor: Tile colour
+    qr_logo:
+      source: Source
+      icon: Icon
+      color: Icon color
+      size: Size
+      padding: Padding
+      background: Use as background
+      transparent_background: Transparent background
+      show_data_behind: Show data behind
+      image_hint: Uploaded in the "qrcode logo image" setting below.
+      size_warning: This logo is too large to safely restore even at the highest error correction level. Shrink it or show the data behind it.
+    positions:
+      top_left: Top left
+      top_center: Top center
+      top_right: Top right
+      center_left: Center left
+      center: Center
+      center_right: Center right
+      bottom_left: Bottom left
+      bottom_center: Bottom center
+      bottom_right: Bottom right

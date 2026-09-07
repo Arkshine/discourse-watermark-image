@@ -1,0 +1,127 @@
+.admin-interface {
+  .watermark-tabs {
+    position: sticky;
+    top: var(--header-offset, 0);
+    z-index: 1;
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    border-bottom: 1px solid var(--primary-low);
+    background: var(--secondary);
+
+    .horizontal-overflow-nav {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .nav-pills {
+      display: flex;
+      gap: var(--space-2);
+      padding: 0;
+      list-style: none;
+    }
+
+    &__tab {
+      flex: 0 0 auto;
+      margin-bottom: -1px;
+      padding: var(--space-2) var(--space-3);
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--primary-medium);
+      font-size: var(--font-0);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: color 0.12s ease;
+
+      &:hover {
+        color: var(--primary);
+      }
+
+      &.active {
+        color: var(--tertiary);
+        border-bottom-color: var(--tertiary);
+      }
+    }
+
+    &__preview-toggle {
+      flex: 0 0 auto;
+      align-self: center;
+
+      .mobile-view & .d-button-label {
+        display: none;
+      }
+    }
+  }
+
+  .theme.settings {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .watermark-settings-heading {
+    margin: var(--space-4) 0 var(--space-2);
+    font-size: var(--font-up-1);
+  }
+
+  // Section order: profiles, general heading, global fields,
+  // default heading, default toggle, tabs, tabbed fields.
+  .theme.settings [data-setting="watermark_profiles"] {
+    order: -6;
+  }
+
+  .theme.settings .watermark-settings-general-heading-mount {
+    order: -5;
+  }
+
+  .theme.settings
+    [data-setting]:not(
+      [data-watermark-tab],
+      [data-setting="watermark_profiles"],
+      [data-setting="watermark_default_enabled"]
+    ) {
+    order: -4;
+  }
+
+  .theme.settings .watermark-settings-default-heading-mount {
+    order: -3;
+  }
+
+  .theme.settings [data-setting="watermark_default_enabled"] {
+    order: -2;
+  }
+
+  .theme.settings .watermark-settings-tabs-mount {
+    order: -1;
+  }
+
+  .theme.settings:has(
+      [data-setting="watermark_default_enabled"]
+        [role="switch"][aria-checked="false"]
+    ) {
+    .watermark-settings-tabs-mount,
+    [data-watermark-tab] {
+      display: none;
+    }
+  }
+
+  @each $tab in content, appearance, placement, rules {
+    .theme.settings[data-active-tab="#{$tab}"]
+      [data-watermark-tab]:not([data-watermark-tab="#{$tab}"]) {
+      display: none;
+    }
+
+    .theme.settings:has([data-watermark-tab="#{$tab}"].overridden)
+      .watermark-tabs__tab[data-tab-id="#{$tab}"]::after {
+      content: "";
+      display: inline-block;
+      width: 0.5rem;
+      height: 0.5rem;
+      margin-left: var(--space-1);
+      border-radius: 100%;
+      background-color: var(--highlight-high);
+      vertical-align: middle;
+    }
+  }
+}

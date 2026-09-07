@@ -1,2 +1,6 @@
 node_modules
 .discourse-site
+.eslintcache
+scripts
+docs
+test/node

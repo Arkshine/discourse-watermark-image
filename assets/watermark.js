@@ -2,21 +2,128 @@
 /* eslint-disable no-console */
 
 let promisePhoton;
+let promiseQrCode;
+let qrCodeAssets;
 
 async function handleMessage(event) {
   const action = event.data.action;
 
   if (action === "load") {
-    const { url, wasmUrl } = event.data;
+    const { url, wasmUrl, qrcode } = event.data;
     importScripts(url);
     promisePhoton = __wbg_init({ module_or_path: wasmUrl });
+    qrCodeAssets = qrcode;
   } else if (action === "apply") {
     await promisePhoton;
     applyWatermark(event);
+  } else if (action === "renderQr") {
+    await renderQrOnly(event);
+  }
+}
+
+async function renderQrOnly(event) {
+  const { seq, params } = event.data;
+
+  try {
+    await loadQrCode();
+
+    const { png: data } = await renderQrCode(params.settings, params.size);
+
+    postMessage({ incomingSeq: seq, data }, [data.buffer]);
+  } catch (error) {
+    postMessage({ incomingSeq: seq, error: error.toString() });
   }
 }
 
 onmessage = handleMessage;
+
+function loadQrCode() {
+  promiseQrCode ||= (async () => {
+    importScripts(qrCodeAssets.render);
+    importScripts(qrCodeAssets.bindings);
+
+    if (qrCodeAssets.rough) {
+      importScripts(qrCodeAssets.rough);
+    }
+
+    return QrCodeGen.init({ module_or_path: qrCodeAssets.wasm });
+  })();
+
+  return promiseQrCode;
+}
+
+const NOMINAL_QR_SIZE = 2048;
+const QR_SUPERSAMPLE = 1;
+const SIZE_SLACK = 0.05;
+
+function availableSpace(uploadWidth, uploadHeight, settings) {
+  const [vertical, horizontal = "center"] = String(
+    settings.position || "center"
+  ).split("-");
+
+  const tiled = settings.pattern && settings.pattern !== "none";
+
+  return {
+    width:
+      tiled || horizontal === "center"
+        ? uploadWidth
+        : uploadWidth * (1 - 2 * Math.abs(settings.margin_x || 0)),
+    height:
+      tiled || vertical === "center"
+        ? uploadHeight
+        : uploadHeight * (1 - 2 * Math.abs(settings.margin_y || 0)),
+  };
+}
+
+function fitWithin(width, height, uploadWidth, uploadHeight, settings) {
+  const space = availableSpace(uploadWidth, uploadHeight, settings);
+  const room = {
+    width: Math.min(uploadWidth * (settings.max_size / 100), space.width),
+    height: Math.min(uploadHeight * (settings.max_size / 100), space.height),
+  };
+  const scale = Math.min(1, room.width / width, room.height / height);
+
+  return { width: width * scale, height: height * scale };
+}
+
+function targetSize(uploadWidth, uploadHeight, natural, settings) {
+  const aspectRatio = natural.width / natural.height;
+
+  let width, height;
+
+  if (settings.size_mode === "absolute") {
+    const room = fitWithin(
+      natural.width,
+      natural.height,
+      uploadWidth,
+      uploadHeight,
+      settings
+    );
+
+    width = room.width * settings.absolute_scale;
+    height = room.height * settings.absolute_scale;
+  } else {
+    width = uploadWidth * (settings.relative_width / 100);
+    height = width / aspectRatio;
+  }
+
+  const fitted = fitWithin(width, height, uploadWidth, uploadHeight, settings);
+
+  return {
+    width: Math.max(1, Math.floor(fitted.width)),
+    height: Math.max(1, Math.floor(fitted.height)),
+  };
+}
+
+function containWithinMargin(offset, watermarkSize, uploadSize, margin) {
+  const furthest = uploadSize - watermarkSize - margin;
+
+  if (furthest < margin) {
+    return (uploadSize - watermarkSize) / 2;
+  }
+
+  return Math.min(Math.max(offset, margin), furthest);
+}
 
 function getCoordinates(
   uploadWith,
@@ -26,7 +133,7 @@ function getCoordinates(
   settings
 ) {
   const margin_x = settings.margin_x * uploadWith;
-  const margin_y = settings.margin_y * uploadWith;
+  const margin_y = settings.margin_y * uploadHeight;
   const position = settings.position;
 
   const positions = {
@@ -65,7 +172,12 @@ function getCoordinates(
     },
   };
 
-  return positions[position];
+  const { x, y } = positions[position];
+
+  return {
+    x: containWithinMargin(x, watermarkWidth, uploadWith, margin_x),
+    y: containWithinMargin(y, watermarkheight, uploadHeight, margin_y),
+  };
 }
 
 function createTransparentImage(width, height) {
@@ -289,15 +401,12 @@ function generateRandomPattern(
   const allowPartial = settings.pattern_allow_partial || false;
   const spacing = settings.pattern_spacing || 0;
 
-  // Calculate minimum spacing between watermarks based on image size
   const minSpacingDistance =
     (spacing / 100) * Math.min(uploadWidth, uploadHeight);
 
-  // Get translation offsets from margins (as percentage of image dimensions)
   const translateX = (settings.margin_x || 0) * uploadWidth;
   const translateY = (settings.margin_y || 0) * uploadHeight;
 
-  // Calculate boundaries considering allowPartial
   const minX = allowPartial ? -watermarkWidth : 0;
   const minY = allowPartial ? -watermarkHeight : 0;
   const maxX = allowPartial ? uploadWidth : uploadWidth - watermarkWidth;
@@ -305,20 +414,17 @@ function generateRandomPattern(
 
   const positions = [];
   let attempts = 0;
-  const maxAttempts = count * 50; // Prevent infinite loops
+  const maxAttempts = count * 50;
 
   while (positions.length < count && attempts < maxAttempts) {
     attempts++;
 
-    // Generate random position within boundaries
     const baseX = minX + Math.random() * (maxX - minX);
     const baseY = minY + Math.random() * (maxY - minY);
 
-    // Apply translation
     const x = baseX + translateX;
     const y = baseY + translateY;
 
-    // Check if this position maintains minimum spacing from all existing watermarks
     const maintainsSpacing = positions.every((pos) => {
       const distance = Math.sqrt(
         Math.pow(pos.x - x, 2) + Math.pow(pos.y - y, 2)
@@ -387,32 +493,109 @@ async function createOffscreenCanvasCompat(width, height) {
   };
 }
 
-function calculateMinQRSize(qrText, errorCorrection = "Medium", quietZone = 2) {
-  // Base modules for each side (version 1 starts at 21x21)
-  const baseModules = 21;
+const MASK_FEATHER = 1.5;
+const MASK_HEX_COS60 = Math.cos(Math.PI / 3);
+const MASK_HEX_SIN60 = Math.sin(Math.PI / 3);
 
-  const errorCorrectionMultiplier =
-    {
-      Low: 1.07,
-      Medium: 1.15,
-      Quarter: 1.25,
-      High: 1.3,
-    }[errorCorrection] || 1.15;
-
-  const length = String(qrText).length * errorCorrectionMultiplier;
-
-  let estimatedVersion = Math.ceil(length / 10);
-  if (estimatedVersion < 1) {
-    estimatedVersion = 1;
-  }
-  if (estimatedVersion > 40) {
-    estimatedVersion = 40;
+function maskRegion(region, shape) {
+  if (shape !== "circle" && shape !== "rounded" && shape !== "hexagon") {
+    return;
   }
 
-  const moduleCount = baseModules + (estimatedVersion - 1) * 4 + quietZone * 2;
-  const minPixelsPerModule = 4;
+  const imageData = region.get_image_data();
+  const { width, height, data } = imageData;
+  const halfWidth = width / 2;
+  const halfHeight = height / 2;
+  const radius = Math.min(halfWidth, halfHeight);
+  const corner = Math.min(width, height) * 0.12;
+  const apothem = radius * MASK_HEX_SIN60;
 
-  return Math.ceil(moduleCount * minPixelsPerModule);
+  const distance = (dx, dy) => {
+    if (shape === "circle") {
+      return Math.sqrt(dx * dx + dy * dy) - radius;
+    }
+
+    if (shape === "hexagon") {
+      return (
+        Math.max(
+          Math.abs(dx),
+          Math.abs(dx * MASK_HEX_COS60 + dy * MASK_HEX_SIN60),
+          Math.abs(dx * MASK_HEX_COS60 - dy * MASK_HEX_SIN60)
+        ) - apothem
+      );
+    }
+
+    const ox = Math.abs(dx) - (halfWidth - corner);
+    const oy = Math.abs(dy) - (halfHeight - corner);
+    const outside = Math.sqrt(Math.max(ox, 0) ** 2 + Math.max(oy, 0) ** 2);
+
+    return outside + Math.min(Math.max(ox, oy), 0) - corner;
+  };
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const d = distance(x + 0.5 - halfWidth, y + 0.5 - halfHeight);
+      const coverage = Math.min(Math.max(0.5 - d / MASK_FEATHER, 0), 1);
+
+      if (coverage < 1) {
+        const i = (y * width + x) * 4 + 3;
+        data[i] = Math.round(data[i] * coverage);
+      }
+    }
+  }
+
+  region.set_imgdata(imageData);
+}
+
+function maskRegionFromAlpha(region, alphaSource, offsetX, offsetY) {
+  const imageData = region.get_image_data();
+  const { width, height, data } = imageData;
+  const { width: srcWidth, height: srcHeight, data: srcData } = alphaSource;
+
+  for (let y = 0; y < height; y++) {
+    const sy = y + offsetY;
+
+    for (let x = 0; x < width; x++) {
+      const sx = x + offsetX;
+      const i = (y * width + x) * 4 + 3;
+
+      if (sx < 0 || sx >= srcWidth || sy < 0 || sy >= srcHeight) {
+        data[i] = 0;
+        continue;
+      }
+
+      const srcAlpha = srcData[(sy * srcWidth + sx) * 4 + 3];
+      data[i] = Math.round((data[i] * srcAlpha) / 255);
+    }
+  }
+
+  region.set_imgdata(imageData);
+}
+
+function hexToRgb(hex) {
+  const match = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex ?? "");
+
+  if (!match) {
+    return null;
+  }
+
+  return new Rgb(
+    parseInt(match[1], 16),
+    parseInt(match[2], 16),
+    parseInt(match[3], 16)
+  );
+}
+
+function isBelowMinDimensions(width, height, params) {
+  if (!params.skip_small_images || !params.min_image_dimensions) {
+    return false;
+  }
+
+  const [minWidth, minHeight] = params.min_image_dimensions
+    .split("x")
+    .map(Number);
+
+  return width < minWidth || (minHeight && height < minHeight);
 }
 
 async function applyWatermark(event) {
@@ -420,21 +603,17 @@ async function applyWatermark(event) {
   const { upload: uploadParams, watermark: watermarkParams } = params;
 
   let uploadImage;
-  let watermarkImage;
 
   try {
     uploadImage = PhotonImage.new_from_byteslice(
       new Uint8Array(uploadParams.buffer)
-    );
-    watermarkImage = PhotonImage.new_from_byteslice(
-      new Uint8Array(watermarkParams.buffer)
     );
   } catch (error) {
     console.warn("Unsupported format.", error);
 
     postMessage({
       incomingSeq: seq,
-      uploadImageData: null,
+      error: error.toString(),
     });
 
     return;
@@ -443,101 +622,105 @@ async function applyWatermark(event) {
   const uploadWidth = uploadImage.get_width();
   const uploadHeight = uploadImage.get_height();
 
-  let watermarkWidth = watermarkImage.get_width();
-  let watermarkHeight = watermarkImage.get_height();
+  if (isBelowMinDimensions(uploadWidth, uploadHeight, watermarkParams)) {
+    postMessage({
+      incomingSeq: seq,
+      data: null,
+      reason: "dimensions_too_small",
+    });
 
-  if (
-    watermarkParams.skip_small_images &&
-    watermarkParams.min_image_dimensions
-  ) {
-    const [minWidth, minHeight] = watermarkParams.min_image_dimensions
-      .split("x")
-      .map(Number);
-
-    if (uploadWidth < minWidth || (minHeight && uploadHeight < minHeight)) {
-      postMessage({
-        incomingSeq: seq,
-        data: null,
-        reason: "dimensions_too_small",
-      });
-
-      return;
-    }
+    return;
   }
 
-  if (
-    watermarkParams.size_mode === "relative" ||
-    watermarkParams.size_mode === "absolute"
-  ) {
-    const aspectRatio = watermarkWidth / watermarkHeight;
-    const previousWatermarkWidth = watermarkWidth;
-    const previousWatermarkHeight = watermarkHeight;
+  let watermarkImage;
+  let watermarkWidth;
+  let watermarkHeight;
+  let qrModules = null;
+  let qrMaskImage = null;
 
-    const maxWidth = uploadWidth * (watermarkParams.max_size / 100);
-    const maxHeight = uploadHeight * (watermarkParams.max_size / 100);
+  try {
+    if (watermarkParams.qrcode_enabled) {
+      await loadQrCode();
 
-    if (watermarkParams.size_mode === "relative") {
-      const targetWidth = uploadWidth * (watermarkParams.relative_width / 100);
-      watermarkWidth = Math.min(targetWidth, maxWidth);
+      const budget = targetSize(
+        uploadWidth,
+        uploadHeight,
+        { width: NOMINAL_QR_SIZE, height: NOMINAL_QR_SIZE },
+        watermarkParams
+      ).width;
 
-      if (watermarkParams.isQRCode) {
-        const minSize = calculateMinQRSize(
-          watermarkParams.qrcode_text || "",
-          watermarkParams.qrcode_error_correction,
-          watermarkParams.qrcode_quiet_zone
+      watermarkParams.qrcode_size_slack =
+        uploadWidth * SIZE_SLACK * QR_SUPERSAMPLE;
+
+      const { png: qrBytes, mask: qrMaskBytes } = await renderQrCode(
+        watermarkParams,
+        budget * QR_SUPERSAMPLE
+      );
+
+      watermarkImage = PhotonImage.new_from_byteslice(qrBytes);
+      qrModules = lastQrModules;
+
+      if (qrMaskBytes) {
+        qrMaskImage = PhotonImage.new_from_byteslice(qrMaskBytes);
+      }
+
+      if (QR_SUPERSAMPLE > 1) {
+        watermarkImage = resize(
+          watermarkImage,
+          Math.round(watermarkImage.get_width() / QR_SUPERSAMPLE),
+          Math.round(watermarkImage.get_height() / QR_SUPERSAMPLE),
+          SamplingFilter.Lanczos3
         );
 
-        watermarkWidth = Math.max(watermarkWidth, minSize);
-        watermarkHeight = watermarkWidth;
-
-        if (watermarkWidth > maxWidth) {
-          console.warn(
-            "QR code may not be readable at this size - content may be too large"
+        if (qrMaskImage) {
+          qrMaskImage = resize(
+            qrMaskImage,
+            watermarkImage.get_width(),
+            watermarkImage.get_height(),
+            SamplingFilter.Lanczos3
           );
-          watermarkWidth = maxWidth;
-          watermarkHeight = maxWidth;
         }
-      } else {
-        watermarkHeight = watermarkWidth / aspectRatio;
       }
     } else {
-      let baseWidth, baseHeight;
-
-      if (watermarkWidth > watermarkHeight) {
-        baseWidth = Math.min(watermarkWidth, maxWidth);
-        baseHeight = baseWidth / aspectRatio;
-      } else {
-        baseHeight = Math.min(watermarkHeight, maxHeight);
-        baseWidth = baseHeight * aspectRatio;
-      }
-
-      watermarkWidth = Math.round(baseWidth * watermarkParams.absolute_scale);
-      watermarkHeight = Math.round(baseHeight * watermarkParams.absolute_scale);
-
-      if (watermarkWidth > maxWidth) {
-        watermarkWidth = maxWidth;
-        watermarkHeight = watermarkWidth / aspectRatio;
-      }
-      if (watermarkHeight > maxHeight) {
-        watermarkHeight = maxHeight;
-        watermarkWidth = watermarkHeight * aspectRatio;
-      }
-    }
-
-    if (
-      watermarkWidth !== previousWatermarkWidth ||
-      watermarkHeight !== previousWatermarkHeight
-    ) {
-      watermarkImage = resize(
-        watermarkImage,
-        Math.round(watermarkWidth),
-        Math.round(watermarkHeight),
-        watermarkParams.isQRCode
-          ? SamplingFilter.Nearest
-          : SamplingFilter.Lanczos3
+      watermarkImage = PhotonImage.new_from_byteslice(
+        new Uint8Array(watermarkParams.buffer)
       );
+
+      const target = targetSize(
+        uploadWidth,
+        uploadHeight,
+        {
+          width: watermarkImage.get_width(),
+          height: watermarkImage.get_height(),
+        },
+        watermarkParams
+      );
+
+      if (
+        target.width !== watermarkImage.get_width() ||
+        target.height !== watermarkImage.get_height()
+      ) {
+        watermarkImage = resize(
+          watermarkImage,
+          target.width,
+          target.height,
+          SamplingFilter.Lanczos3
+        );
+      }
     }
+  } catch (error) {
+    console.warn("Could not build the watermark.", error);
+
+    postMessage({
+      incomingSeq: seq,
+      error: error.toString(),
+    });
+
+    return;
   }
+
+  watermarkWidth = watermarkImage.get_width();
+  watermarkHeight = watermarkImage.get_height();
 
   let defaultPosition = getCoordinates(
     uploadWidth,
@@ -608,6 +791,51 @@ async function applyWatermark(event) {
     bitmap.close();
   }
 
+  if (
+    watermarkParams.qrcode_enabled &&
+    watermarkParams.qrcode_backdrop === "blur"
+  ) {
+    const w = watermarkImage.get_width();
+    const h = watermarkImage.get_height();
+    const radius = Math.max(2, Math.round(Math.min(w, h) / 18));
+    const alphaSource = qrMaskImage ? qrMaskImage.get_image_data() : null;
+
+    for (const position of positions) {
+      const x1 = Math.max(0, Math.round(position.x));
+      const y1 = Math.max(0, Math.round(position.y));
+      const x2 = Math.min(uploadWidth, x1 + w);
+      const y2 = Math.min(uploadHeight, y1 + h);
+
+      if (x2 <= x1 || y2 <= y1) {
+        continue;
+      }
+
+      const region = crop(uploadImage, x1, y1, x2, y2);
+      gaussian_blur(region, radius);
+
+      const strength = watermarkParams.qrcode_backdrop_strength ?? 0;
+
+      if (strength > 0) {
+        const rgb = hexToRgb(watermarkParams.qrcode_backdrop_color);
+
+        if (rgb) {
+          mix_with_colour(region, rgb, strength);
+        }
+      }
+
+      if (alphaSource) {
+        const offsetX = x1 - Math.round(position.x);
+        const offsetY = y1 - Math.round(position.y);
+        maskRegionFromAlpha(region, alphaSource, offsetX, offsetY);
+      } else {
+        maskRegion(region, watermarkParams.qrcode_backdrop_shape);
+      }
+
+      watermark(uploadImage, region, BigInt(x1), BigInt(y1));
+      region.free();
+    }
+  }
+
   if (watermarkParams.blend_mode !== "normal") {
     let transparentImage = createTransparentImage(uploadWidth, uploadHeight);
 
@@ -634,12 +862,18 @@ async function applyWatermark(event) {
   }
 
   const result = uploadImage.get_image_data();
+  const meta = {
+    uploadWidth,
+    uploadHeight,
+    watermarkWidth: watermarkImage.get_width(),
+    watermarkHeight: watermarkImage.get_height(),
+    tiles: positions.length,
+    modules: qrModules,
+  };
 
   uploadImage.free();
   watermarkImage.free();
+  qrMaskImage?.free();
 
-  postMessage({
-    incomingSeq: seq,
-    data: result,
-  });
+  postMessage({ incomingSeq: seq, data: result, meta });
 }

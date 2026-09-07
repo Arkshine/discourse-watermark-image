@@ -1,6 +1,6 @@
 import { Promise } from "rsvp";
+import { bind } from "discourse/lib/decorators";
 import { UploadPreProcessorPlugin } from "discourse/lib/uppy-plugin-base";
-import { bind } from "discourse-common/utils/decorators";
 
 export default class UppyMediaWatermark extends UploadPreProcessorPlugin {
   static pluginId = "uppy-media-watermark";
@@ -8,6 +8,8 @@ export default class UppyMediaWatermark extends UploadPreProcessorPlugin {
   constructor(uppy, opts) {
     super(uppy, opts);
     this.watermarkFn = opts.watermarkFn;
+    this.allowUploadOnError = opts.allowUploadOnError ?? true;
+    this.errorMessage = opts.errorMessage;
 
     // mobile devices have limited processing power, so we only enable
     // running media optimization in parallel when we are sure the user
@@ -24,23 +26,25 @@ export default class UppyMediaWatermark extends UploadPreProcessorPlugin {
 
     return this.watermarkFn(file, { stopWorkerOnError: !this.runParallel })
       .then((watermarkedFile) => {
-        let skipped = false;
         if (!watermarkedFile) {
-          this._consoleWarn(
-            "Nothing happened, possible error or other restriction, or the file format is not a valid one for compression."
-          );
-          skipped = true;
-        } else {
-          this._setFileState(fileId, {
-            data: watermarkedFile,
-            size: watermarkedFile.size,
-          });
+          this._emitComplete(file, true);
+          return;
         }
-        this._emitComplete(file, skipped);
+
+        this._setFileState(fileId, {
+          data: watermarkedFile,
+          size: watermarkedFile.size,
+        });
+        this._emitComplete(file);
       })
       .catch((err) => {
         this._consoleWarn(err);
-        this._emitComplete(file);
+
+        if (this.allowUploadOnError) {
+          this._emitComplete(file, true);
+        } else {
+          this._emitError(file, this.errorMessage || err.message || err);
+        }
       });
   }
 

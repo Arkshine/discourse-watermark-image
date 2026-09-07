@@ -1,15 +1,19 @@
 import { setOwner } from "@ember/owner";
 import { service } from "@ember/service";
-import { getAbsoluteURL } from "discourse-common/lib/get-url";
+import { ajax } from "discourse/lib/ajax";
+import { resolveColor } from "discourse/lib/color-transformations";
+import { getAbsoluteURL } from "discourse/lib/get-url";
+import { convertIconClass } from "discourse/lib/icon-library";
 import { imageURLToFile } from "./media-watermark-utils";
-
-const workerWatermarkUrl = settings.theme_uploads_local.worker_watermark;
-const workerPhotonUrl = settings.theme_uploads_local.worker_photon;
-const workerPhotonWasmUrl = settings.theme_uploads.worker_photon_wasm;
-
-const workerQRCodeUrl = settings.theme_uploads_local.worker_qrcode;
-const workerQRCodeGenUrl = settings.theme_uploads_local.worker_qrcodegen;
-const workerQRCodeGenWasmUrl = settings.theme_uploads.worker_qrcodegen_wasm;
+import {
+  paramsFor,
+  parseAxisConfig,
+  resolveAxisParams,
+  stringifyAxisConfig,
+} from "./qr-settings/axes";
+import { parseLogoConfig, stringifyLogoConfig } from "./qr-settings/logo";
+import { renderTextWatermark, resolveStaticFontFamily } from "./text-watermark";
+import { workerManager } from "./watermark/worker";
 
 export const WATERMARK_ALLOWED_EXTS = new Set([
   "png",
@@ -30,76 +34,84 @@ export function isImageAllowed(path) {
   return WATERMARK_ALLOWED_EXTS.has(ext);
 }
 
-class WorkerManager {
-  @service siteSettings;
+export function absoluteUploadURL(value) {
+  return value.startsWith("http") ? value : getAbsoluteURL(value);
+}
 
-  constructor() {
-    this.workers = {};
-    this.messageSeq = 0;
-    this.resolvers = {};
-  }
+const DEFAULT_TEXT_STYLE = {
+  font: '{"key":"site"}',
+  weight: "normal",
+  italic: false,
+  textCase: "none",
+  letterSpacing: "0",
+  align: "center",
+  color: "#ffffff",
+  strokeColor: "#000000",
+  strokeWidth: "4",
+  shadowColor: "#000000",
+  shadowBlur: "0",
+  backgroundEnabled: false,
+  backgroundColor: "#000000",
+};
 
-  async initWorker(type, config) {
-    if (!this.workers[type]) {
-      this.workers[type] = new Worker(config.url);
-
-      if (config.init) {
-        await config.init(this.workers[type]);
-      }
-
-      this.workers[type].onmessage = (event) => {
-        const { incomingSeq, data } = event.data;
-
-        if (this.resolvers[incomingSeq]) {
-          this.resolvers[incomingSeq](data);
-          delete this.resolvers[incomingSeq];
-        }
-      };
-    }
-
-    return this.workers[type];
-  }
-
-  async sendMessage(type, message, transferables = []) {
-    const seq = this.messageSeq++;
-    const worker = await this.initWorker(type, this.getWorkerConfig(type));
-
-    worker.postMessage({ ...message, seq }, transferables);
-
-    return new Promise((resolve) => {
-      this.resolvers[seq] = resolve;
-    });
-  }
-
-  getWorkerConfig(type) {
-    const configs = {
-      watermark: {
-        url: workerWatermarkUrl,
-        init: async (worker) => {
-          worker.postMessage({
-            action: "load",
-            url: workerPhotonUrl,
-            wasmUrl: workerPhotonWasmUrl,
-          });
-        },
-      },
-      qrcode: {
-        url: workerQRCodeUrl,
-        init: async (worker) => {
-          worker.postMessage({
-            action: "load",
-            url: workerQRCodeGenUrl,
-            wasmUrl: workerQRCodeGenWasmUrl,
-          });
-        },
-      },
-    };
-
-    return configs[type];
+function parseTextStyle(value) {
+  try {
+    return { ...DEFAULT_TEXT_STYLE, ...JSON.parse(value) };
+  } catch {
+    return { ...DEFAULT_TEXT_STYLE };
   }
 }
 
-const workerManager = new WorkerManager();
+function resolveColorOrGradient(color, defaultColor) {
+  if (color && typeof color === "object") {
+    return {
+      ...color,
+      stops: (color.stops ?? []).map((stop) =>
+        resolveColorOrGradient(stop, "#000000")
+      ),
+    };
+  }
+
+  return (color && resolveColor(color)) || defaultColor;
+}
+
+export async function resolveIconSVG(name) {
+  const id = convertIconClass(name);
+  let symbol = document.querySelector(`#svg-sprites symbol#${id}`);
+
+  if (!symbol) {
+    try {
+      const markup = await ajax(`/svg-sprite/search/${id}`);
+      symbol = new DOMParser()
+        .parseFromString(
+          `<svg xmlns="http://www.w3.org/2000/svg">${markup}</svg>`,
+          "image/svg+xml"
+        )
+        .querySelector("symbol");
+    } catch {
+      return null;
+    }
+  }
+
+  if (!symbol) {
+    return null;
+  }
+
+  return {
+    viewBox: symbol.getAttribute("viewBox") || "0 0 512 512",
+    content: symbol.innerHTML,
+  };
+}
+
+const watermarkFileCache = new Map();
+
+async function getWatermarkFile(url) {
+  if (!watermarkFileCache.has(url)) {
+    watermarkFileCache.set(url, await imageURLToFile(url));
+  }
+
+  return watermarkFileCache.get(url);
+}
 
 export default class Watermark {
   static getExtensionsRegex(allowedExts) {
@@ -124,28 +136,7 @@ export default class Watermark {
   }
 
   async process() {
-    let qrCodeData = null;
-
-    if (this.settings.qrcode_enabled) {
-      qrCodeData = await this.generateQRCode();
-
-      if (qrCodeData?.error) {
-        return null;
-      }
-    }
-
-    return this.applyWatermark(qrCodeData);
-  }
-
-  async generateQRCode() {
-    return workerManager.sendMessage("qrcode", {
-      action: "generate",
-      ...this.settings,
-    });
-  }
-
-  async applyWatermark(qrCodeData) {
-    const params = await this.workerData(qrCodeData);
+    const params = await this.workerData();
     const transferables = [params.upload.buffer];
 
     if (params.watermark.buffer) {
@@ -159,34 +150,49 @@ export default class Watermark {
     );
   }
 
-  async workerData(qrCodeData = null) {
+  async workerData() {
     const uploadBuffer = await this.file.arrayBuffer();
 
-    let watermarkData = {};
+    const watermarkSettings = this.settings;
+    let watermarkBuffer = null;
 
-    if (qrCodeData) {
-      watermarkData = {
-        buffer: qrCodeData.buffer,
-      };
-    } else {
-      const watermarkFile = await imageURLToFile(this.abolsuteWatermarkURL);
-      watermarkData = {
-        buffer: await watermarkFile.arrayBuffer(),
-      };
+    if (watermarkSettings.source === "image") {
+      const watermarkFile = await getWatermarkFile(
+        absoluteUploadURL(watermarkSettings.image)
+      );
+      watermarkBuffer = await watermarkFile.arrayBuffer();
+    } else if (watermarkSettings.source === "text") {
+      watermarkBuffer = await renderTextWatermark({
+        text: watermarkSettings.text,
+        font: watermarkSettings.font,
+        fontWeight: watermarkSettings.font_weight,
+        italic: watermarkSettings.font_italic,
+        textCase: watermarkSettings.text_case,
+        letterSpacing: watermarkSettings.text_letter_spacing,
+        align: watermarkSettings.text_align,
+        color: watermarkSettings.text_color,
+        strokeColor: watermarkSettings.text_stroke_color,
+        strokeWidth: watermarkSettings.text_stroke_width,
+        shadowColor: watermarkSettings.text_shadow_color,
+        shadowBlur: watermarkSettings.text_shadow_blur,
+        backgroundEnabled: watermarkSettings.text_background_enabled,
+        backgroundColor: watermarkSettings.text_background_color,
+      });
     }
 
-    const data = {
+    watermarkSettings.buffer = watermarkBuffer;
+    const logo = parseLogoConfig(watermarkSettings.qrcode_logo_config);
+
+    if (logo.enabled && logo.source === "icon" && logo.icon) {
+      watermarkSettings.qrcode_logo_icon = await resolveIconSVG(logo.icon);
+    }
+
+    return {
       upload: {
         buffer: uploadBuffer,
       },
-      watermark: {
-        ...watermarkData,
-        ...this.settings,
-        isQRCode: !!qrCodeData,
-      },
+      watermark: watermarkSettings,
     };
-
-    return data;
   }
 
   get settings() {
@@ -204,57 +210,121 @@ export default class Watermark {
     newSettings.margin_x = newSettings.margin_x / 100;
     newSettings.margin_y = newSettings.margin_y / 100;
     newSettings.opacity = newSettings.opacity / 100;
+    newSettings.qrcode_enabled = newSettings.source === "qrcode";
 
-    if (newSettings.qrcode_text) {
-      newSettings.qrcode_text = newSettings.qrcode_text
-        .replace("{homepage}", getAbsoluteURL(""))
-        .replace("{username}", this.currentUser.username)
-        .replace("{sitename}", this.siteSettings.title);
-
+    const applyPlaceholders = (text) => {
       const topicUrl = getAbsoluteURL(this.topicData?.url || "");
 
-      newSettings.qrcode_text = newSettings.qrcode_text.replace(
-        "{topic_url}",
-        topicUrl
+      return text
+        .replace("{homepage}", getAbsoluteURL(""))
+        .replace("{username}", this.currentUser.username)
+        .replace("{sitename}", this.siteSettings.title)
+        .replace("{topic_url}", topicUrl);
+    };
+
+    if (newSettings.qrcode_text) {
+      newSettings.qrcode_text = applyPlaceholders(newSettings.qrcode_text);
+    }
+
+    if (newSettings.text) {
+      newSettings.text = applyPlaceholders(newSettings.text);
+    }
+
+    const textStyle = parseTextStyle(newSettings.text_style);
+    newSettings.font = textStyle.font;
+    newSettings.font_weight = textStyle.weight;
+    newSettings.font_italic = Boolean(textStyle.italic);
+    newSettings.text_case = textStyle.textCase;
+    newSettings.text_letter_spacing = Number(textStyle.letterSpacing) || 0;
+    newSettings.text_align = textStyle.align;
+    newSettings.text_color = resolveColorOrGradient(textStyle.color, "#ffffff");
+    newSettings.text_stroke_color =
+      (textStyle.strokeColor && resolveColor(textStyle.strokeColor)) ||
+      "#000000";
+    newSettings.text_stroke_width = Number(textStyle.strokeWidth) || 0;
+    newSettings.text_shadow_color =
+      (textStyle.shadowColor && resolveColor(textStyle.shadowColor)) ||
+      "#000000";
+    newSettings.text_shadow_blur = Number(textStyle.shadowBlur) || 0;
+    newSettings.text_background_enabled = Boolean(textStyle.backgroundEnabled);
+    newSettings.text_background_color =
+      (textStyle.backgroundColor && resolveColor(textStyle.backgroundColor)) ||
+      "#000000";
+
+    if (newSettings.qrcode_halftone_image) {
+      newSettings.qrcode_halftone_image_url = absoluteUploadURL(
+        newSettings.qrcode_halftone_image
       );
     }
 
-    const processQRColor = (color, defaultColor) => {
-      if (color.startsWith("var(--") || color.startsWith("--")) {
-        color = getComputedStyle(document.documentElement).getPropertyValue(
-          color.replace(/var\((--.*?)\)/g, "$1")
-        );
+    if (newSettings.qrcode_logo_image) {
+      newSettings.qrcode_logo_image_url = absoluteUploadURL(
+        newSettings.qrcode_logo_image
+      );
+    }
 
-        return color || defaultColor;
-      }
-
-      if (/^#[0-9A-F]{6}$/i.test(color)) {
-        return color;
-      }
-
-      return defaultColor;
-    };
-
-    newSettings.qrcode_color = processQRColor(
+    newSettings.qrcode_color = resolveColorOrGradient(
       newSettings.qrcode_color,
       "#000000"
     );
 
-    newSettings.qrcode_background_color = processQRColor(
+    newSettings.qrcode_background_color = resolveColorOrGradient(
       newSettings.qrcode_background_color,
       "#ffffff"
     );
+
+    const cfg = parseAxisConfig(newSettings.qrcode_style_config);
+    const resolved = resolveAxisParams(cfg, newSettings);
+
+    for (const [key, spec] of Object.entries(paramsFor(cfg))) {
+      if (resolved[key] === undefined) {
+        continue;
+      }
+
+      if (spec.type === "color") {
+        resolved[key] = resolveColorOrGradient(
+          resolved[key],
+          key === "background" ? "#ffffff" : "#000000"
+        );
+      } else if (spec.type === "number") {
+        const value = Number(resolved[key]);
+        resolved[key] = Number.isFinite(value) ? value : (spec.default ?? 0);
+      }
+    }
+
+    newSettings.qrcode_frame_font_family = resolved.frameText
+      ? resolveStaticFontFamily(resolved.frameFont)
+      : null;
+
+    newSettings.qrcode_backdrop = resolved.backdrop ?? "solid";
+    newSettings.qrcode_backdrop_shape = cfg.frame?.startsWith("circle")
+      ? "circle"
+      : cfg.frame === "hexagon"
+        ? "hexagon"
+        : cfg.frame === "rounded-border" || cfg.frame === "rounded-corners"
+          ? "rounded"
+          : "rect";
+    newSettings.qrcode_backdrop_strength = resolved.backdropStrength ?? 0.5;
+    newSettings.qrcode_backdrop_color =
+      typeof resolved.background === "string"
+        ? resolved.background
+        : (resolved.background?.stops?.[0] ?? "#ffffff");
+
+    newSettings.qrcode_style_config = stringifyAxisConfig({
+      ...cfg,
+      params: resolved,
+    });
+
+    const logo = parseLogoConfig(newSettings.qrcode_logo_config);
+    if (logo.color) {
+      logo.color = resolveColorOrGradient(logo.color, logo.color);
+      newSettings.qrcode_logo_config = stringifyLogoConfig(logo);
+    }
 
     newSettings.qrcode_error_correction = ["L", "M", "Q", "H"].indexOf(
       newSettings.qrcode_error_correction.charAt(0)
     );
 
     return newSettings;
-  }
-
-  get abolsuteWatermarkURL() {
-    return this.settings.image.startsWith("http")
-      ? this.settings.image
-      : getAbsoluteURL(this.settings.image);
   }
 }
