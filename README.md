@@ -125,11 +125,9 @@ Each profile has:
 
 Evaluation order:
 
-1. Profiles are checked top to bottom. The first enabled profile whose conditions match the upload is used, so put broad profiles (no categories, no tags) last or they shadow everything below them.
+1. Profiles are checked top to bottom. The first enabled profile whose conditions match the upload is used.
 2. If none matches, the default watermark is used when `default_enabled` is on and its own conditions match.
 3. Otherwise the image is uploaded without a watermark.
-
-Profiles are edited through Discourse's objects setting editor. The settings page shows a live preview for the profile being edited, and changes are only applied once the profile is saved.
 
 ## Watermark Types
 

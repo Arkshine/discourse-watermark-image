@@ -4,7 +4,7 @@ en:
     settings:
       watermark_default_enabled: Apply a default watermark, used when no profile matches the upload.
       watermark_profiles:
-        description: "Per-target watermark profiles (experimental). Checked top to bottom, the first enabled profile whose conditions match is used."
+        description: "Per-target watermark profiles. Checked top to bottom, the first enabled profile whose conditions match is used."
         schema:
           properties:
             name:
