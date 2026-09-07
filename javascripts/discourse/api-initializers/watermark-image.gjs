@@ -64,7 +64,10 @@ class WatermarkInit {
     this.api = api;
 
     api.registerRichEditorExtension(richEditorSwapExtension);
-    api.registerRichEditorExtension(manualToggleRichEditorExtension);
+
+    if (settings.user_in_watermark_manual_toggle_groups) {
+      api.registerRichEditorExtension(manualToggleRichEditorExtension);
+    }
 
     const customControls = {
       watermark_default_enabled: WatermarkSwitch,

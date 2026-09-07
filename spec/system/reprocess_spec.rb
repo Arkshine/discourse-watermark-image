@@ -276,6 +276,52 @@ RSpec.describe "Watermark - reprocess", system: true do
     end
   end
 
+  context "when manual toggle groups is empty" do
+    fab!(:matched_category, :category)
+
+    before do
+      theme.update_setting(
+        :watermark_profiles,
+        [
+          {
+            "name" => "category profile",
+            "enabled" => true,
+            "categories" => [matched_category.id],
+            "groups" => [5], # AUTO_GROUPS.logged_in_users
+            "source" => "text",
+            "text" => "WATERMARKED",
+          },
+        ],
+      )
+      theme.save!
+    end
+
+    it "does not show the toggle toolbar in the rich editor" do
+      sign_in(user)
+      topic_page.open_new_topic
+      composer.fill_title("Manual toggle hidden RTE test")
+      composer.switch_category(matched_category.name)
+
+      upload_and_wait
+
+      composer.toggle_rich_editor
+      expect(composer).to have_rich_editor_active
+
+      rich = composer.rich_editor
+      expect(rich).to have_css(".composer-image-node img", count: 1)
+      expect(rich).to have_no_css(".composer-image-node img[src='/images/transparent.png']")
+      expect(rich).to have_no_css("img[data-placeholder='true']")
+
+      # The node view can swallow the first click while the image is still settling.
+      try_until_success(timeout: 10) do
+        rich.find(".composer-image-node img").click
+        expect(rich).to have_css(".composer-image-node img.ProseMirror-selectednode", wait: 1)
+      end
+
+      expect(page).to have_no_css(".watermark-manual-toolbar")
+    end
+  end
+
   context "when several profiles match" do
     before do
       theme.update_setting(:watermark_manual_toggle_groups, "5") # AUTO_GROUPS.logged_in_users
